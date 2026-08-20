@@ -440,6 +440,38 @@ async function main() {
     },
   });
 
+  // ---- Badges (critérios declarativos avaliados pelo worker) ----
+  const badgeDefs = [
+    {
+      code: 'primeiros-passos',
+      name: 'Primeiros Passos',
+      description: 'Complete a primeira aula',
+      icon: '🎯',
+      criteria: { type: 'and', ops: [{ xp_total: 100 }] },
+    },
+    {
+      code: 'sargento',
+      name: 'Sargento de Dados',
+      description: 'Acumule 2.500 XP',
+      icon: '🎖️',
+      criteria: { type: 'and', ops: [{ xp_total: 2500 }] },
+    },
+    {
+      code: 'maratona',
+      name: 'Maratonista',
+      description: 'Mantenha uma sequência de 7 dias',
+      icon: '🔥',
+      criteria: { type: 'and', ops: [{ streak: 7 }] },
+    },
+  ];
+  for (const b of badgeDefs) {
+    await prisma.badge.upsert({
+      where: { code: b.code },
+      create: b,
+      update: { name: b.name, description: b.description, icon: b.icon, criteria: b.criteria },
+    });
+  }
+
   console.log('Seed completo ✔');
 }
 

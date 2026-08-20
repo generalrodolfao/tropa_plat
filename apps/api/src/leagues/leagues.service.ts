@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class LeaguesService {
+  private readonly logger = new Logger(LeaguesService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async current(userId: string) {
@@ -112,6 +114,47 @@ export class LeaguesService {
       ),
     );
 
+    return league;
+  }
+
+  /** Job semanal: marca a liga da semana anterior como settled e reseta week_xp. */
+  async settlePreviousLeague() {
+    const now = new Date();
+    const monday = this.weekStart();
+
+    const prevWeekEnd = new Date(monday.getTime() - 24 * 60 * 60 * 1000);
+    const settled = await this.prisma.league.updateMany({
+      where: {
+        status: 'open',
+        weekEnd: { lte: prevWeekEnd },
+      },
+      data: { status: 'settled' },
+    });
+
+    await this.prisma.userXp.updateMany({
+      where: { weekXp: { gt: 0 } },
+      data: { weekXp: 0 },
+    });
+
+    this.logger.log(
+      `Ligas encerradas: ${settled.count} · week_xp zerado (${now.toISOString()})`,
+    );
+    return settled.count;
+  }
+
+  /** Job semanal: criação + encerramento da liga anterior. */
+  async weeklyLeagueJob() {
+    const last = await this.prisma.league.findFirst({
+      orderBy: { season: 'desc' },
+      select: { season: true },
+    });
+    const season = (last?.season ?? 0) + 1;
+
+    await this.settlePreviousLeague();
+    const league = await this.createWeeklyLeague(season);
+    this.logger.log(
+      `Liga da semana criada: season ${season} (${league.cohortSize} membros)`,
+    );
     return league;
   }
 

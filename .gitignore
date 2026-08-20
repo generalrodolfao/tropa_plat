@@ -10,3 +10,4 @@ coverage/
 !.env.example
 .pnp.*
 .turbo/
+.seed-dist/

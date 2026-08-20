@@ -11,6 +11,7 @@ import { LibraryModule } from './library/library.module';
 import { HackathonsModule } from './hackathons/hackathons.module';
 import { JobsModule } from './jobs/jobs.module';
 import { RealtimeModule } from './realtime/realtime.module';
+import { WorkerModule } from './worker/worker.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { RealtimeModule } from './realtime/realtime.module';
     HackathonsModule,
     JobsModule,
     RealtimeModule,
+    WorkerModule,
   ],
 })
 export class AppModule {}
