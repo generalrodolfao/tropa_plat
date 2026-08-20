@@ -1,98 +1,135 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Tropa dos Dados — API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend da plataforma Tropa dos Dados. NestJS + Fastify + Prisma + PostgreSQL + Socket.IO.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Stack
 
-## Description
+- **NestJS 11** com adapter **Fastify** (HTTP e Socket.IO)
+- **Prisma** + **PostgreSQL 16**
+- **Argon2id** para hash de senha
+- **JWT** access (15m) + refresh opaco (30d) com rotação
+- **Socket.IO** para realtime (namespace `/realtime`)
+- **Swagger** em `/docs`
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Pré-requisitos
 
-## Project setup
+- Node 20+ (pnpm 11)
+- Docker (para Postgres/Redis locais)
+
+## Setup local
 
 ```bash
-$ pnpm install
+# 1. Suba Postgres e Redis
+docker compose up -d
+
+# 2. Instale dependências (na raiz do monorepo)
+pnpm install
+
+# 3. Configure o .env
+cp .env.example .env
+
+# 4. Rode as migrations
+pnpm --filter @tropa/api db:deploy
+
+# 5. (Opcional) Seed com dados demo
+pnpm --filter @tropa/api db:seed
+
+# 6. Rode a API
+pnpm --filter @tropa/api dev
 ```
 
-## Compile and run the project
+A API sobe em `http://localhost:4000/v1` e o Swagger em `http://localhost:4000/docs`.
+
+### Usuário demo (após seed)
+
+```
+email:    demo@tropadosdados.com
+password: tropa-demo-123
+```
+
+## Scripts
+
+| Script           | Descrição                                   |
+| ---------------- | ------------------------------------------- |
+| `dev`            | Nest start em watch mode                    |
+| `build`          | `nest build` (output em `dist/`)            |
+| `start:prod`     | `node dist/main`                            |
+| `lint`           | ESLint sobre `src/` e `test/`               |
+| `typecheck`      | `tsc --noEmit`                              |
+| `test:e2e`       | Testes de integração (Jest + supertest)     |
+| `db:generate`    | Gera o Prisma Client                        |
+| `db:deploy`      | Aplica migrations pendentes (`migrate deploy`) |
+| `db:migrate`     | Cria/aplica migrations em dev (`migrate dev`)  |
+| `db:seed`        | Roda o seed (`node .seed-dist/seed.js`)     |
+| `db:seed:build`  | Compila o seed para JS (`tsc`)              |
+
+## Módulos e rotas
+
+Todos os endpoints são prefixados com `/v1`.
+
+| Módulo      | Rotas principais                                                        |
+| ----------- | ---------------------------------------------------------------------- |
+| Auth        | `POST /auth/register`, `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me` |
+| Health      | `GET /health`                                                           |
+| Gamificação | `GET /gamification/summary`, `GET /gamification/ranks`                  |
+| Conteúdo    | `GET /content/courses`, `GET /content/courses/:slug`, `GET /content/lessons/:id` |
+| Progresso   | `POST /progress/start`, `POST /progress/complete`, `GET /progress/course/:courseId` |
+| Ligas       | `GET /leagues/current`, `GET /leagues/history`                          |
+| Biblioteca  | `GET /library`, `GET /library/ebooks/:slug`, `POST /library/progress`, `GET /library/certificates` |
+| Hackathons  | `GET /hackathons`, `GET /hackathons/me`, `GET /hackathons/:id`, `POST /hackathons/join` |
+| Vagas       | `GET /jobs`, `POST /jobs/apply`                                         |
+| Realtime    | Socket.IO em `/realtime` (namespace)                                    |
+
+## Banco de dados
+
+O schema Prisma cobre:
+
+- **Identidade**: users, profiles, roles, sessions (refresh tokens), organizations
+- **Conteúdo**: courses, modules, lessons, lesson progress, quizzes (com IRT simplificado)
+- **Gamificação**: xp, streak, badges, leagues/rankings
+- **Produto**: sandboxes (SQL/Python), projetos, skills, PDI, CV
+- **Mercado**: vagas + candidaturas, hackathons + times + submissions
+- **Biblioteca**: ebooks + reading progress + certificados (horas complementares)
+- **Auditoria**: audit log
+
+Migrations ficam em `prisma/migrations/`. Para mudanças de schema em dev: `db:migrate`; em produção: `db:deploy`.
+
+## Docker / Produção
+
+O `Dockerfile` faz build multi-stage (deps → builder → runner). O `docker-entrypoint.sh` roda no boot:
+
+1. `prisma migrate deploy` (idempotente, sempre)
+2. `prisma db:seed` apenas se `SEED_ON_BOOT=true` (o seed é **destrutivo** — recria ligas/hackathons/vagas; use só na primeira subida)
+3. Sobe a aplicação
+
+### Deploy no Railway
+
+Serviços: `web` (Next.js), `api` (este), `Postgres`, `Redis`.
+
+Variáveis do serviço `api`:
+
+| Variável            | Valor                                             |
+| ------------------- | ------------------------------------------------- |
+| `DATABASE_URL`      | `${{Postgres.DATABASE_URL}}`                      |
+| `REDIS_URL`         | `${{Redis.REDIS_URL}}`                            |
+| `JWT_ACCESS_SECRET` | segredo de acesso (troque em prod)                |
+| `JWT_REFRESH_SECRET`| segredo de refresh (troque em prod)               |
+| `JWT_ACCESS_TTL`    | `15m`                                             |
+| `JWT_REFRESH_TTL`   | `30d`                                             |
+| `CORS_ORIGIN`       | URL pública do `web`                              |
+| `PORT`              | `4000`                                            |
+| `RAILWAY_DOCKERFILE_PATH` | `apps/api/Dockerfile`                       |
+
+Deploy:
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+railway up --ci --service api
 ```
 
-## Run tests
+## Testes
 
 ```bash
-# unit tests
-$ pnpm run test
-
-# e2e tests
-$ pnpm run test:e2e
-
-# test coverage
-$ pnpm run test:cov
+pnpm --filter @tropa/api test:e2e
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+O teste cobre o fluxo de auth ponta a ponta (register/login/me/refresh com rotação) usando supertest sobre o Fastify.
