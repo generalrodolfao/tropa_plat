@@ -20,4 +20,9 @@ export class XpController {
   ranks() {
     return XpService.ranks();
   }
+
+  @Get('badges')
+  async badges(@CurrentUser() user: { userId: string }) {
+    return this.xp.getBadges(user.userId);
+  }
 }

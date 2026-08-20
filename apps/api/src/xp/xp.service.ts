@@ -85,6 +85,25 @@ export class XpService {
     });
   }
 
+  async getBadges(userId: string) {
+    const badges = await this.prisma.badge.findMany({
+      orderBy: { code: 'asc' },
+    });
+    const earned = await this.prisma.userBadge.findMany({
+      where: { userId },
+    });
+    const earnedCodes = new Set(earned.map((e) => e.badgeId));
+
+    return badges.map((b) => ({
+      code: b.code,
+      name: b.name,
+      description: b.description,
+      icon: b.icon,
+      earned: earnedCodes.has(b.id),
+      earnedAt: earned.find((e) => e.badgeId === b.id)?.earnedAt ?? null,
+    }));
+  }
+
   async getSummary(userId: string) {
     const [xp, streak] = await Promise.all([
       this.prisma.userXp.findUnique({ where: { userId } }),
