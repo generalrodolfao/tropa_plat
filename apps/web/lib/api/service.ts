@@ -225,3 +225,31 @@ export const cvApi = {
     return handle(res)
   },
 }
+
+// Progress — POST /v1/progress/start|complete e GET /v1/progress/course/:id
+export const progressApi = {
+  start: async (lessonId: string) => {
+    const res = await fetch(`${API_BASE}/progress/start`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ lessonId }),
+    })
+    return handle(res)
+  },
+  complete: async (lessonId: string) => {
+    const res = await fetch(`${API_BASE}/progress/complete`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ lessonId }),
+    })
+    return handle<{ ok: boolean; xpAwarded: number }>(res)
+  },
+  getCourseProgress: async (courseId: string) => {
+    const res = await fetch(`${API_BASE}/progress/course/${courseId}`, { headers: getAuthHeaders() })
+    return handle<{ totalLessons: number; completedLessons: number; progressPct: number; earnedXp: number; totalXp: number; completedIds: string[] }>(res)
+  },
+  getLesson: async (lessonId: string) => {
+    const res = await fetch(`${API_BASE}/content/lessons/${lessonId}`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+}
