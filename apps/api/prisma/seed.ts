@@ -37,6 +37,30 @@ async function main() {
     ],
   });
 
+  // ---- Usuário admin (para testes e operação) ----
+  const adminEmail = 'admin@tropadosdados.com';
+  let admin = await prisma.user.findUnique({ where: { email: adminEmail } });
+  if (!admin) {
+    admin = await prisma.user.create({
+      data: {
+        email: adminEmail,
+        name: 'Admin Tropa',
+        passwordHash: await argon2.hash('admin-tropa-123', { type: argon2.argon2id }),
+        profile: { create: { headline: 'Administrador', timezone: 'America/Sao_Paulo' } },
+        userXp: { create: { totalXp: 0, weekXp: 0 } },
+        streak: { create: { current: 0, longest: 0 } },
+      },
+    });
+    console.log(`Usuário admin criado: ${adminEmail} / admin-tropa-123`);
+  }
+  await prisma.userRole.deleteMany({ where: { userId: admin.id } });
+  await prisma.userRole.createMany({
+    data: [
+      { userId: admin.id, role: 'student' },
+      { userId: admin.id, role: 'admin' },
+    ],
+  });
+
   // ---- Limpeza de dados seedáveis (idempotência) ----
   await prisma.lessonProgress.deleteMany({ where: { userId: demo.id } });
   await prisma.readingProgress.deleteMany({ where: { userId: demo.id } });

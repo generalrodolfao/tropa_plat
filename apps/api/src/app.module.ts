@@ -8,6 +8,8 @@ import { ContentModule } from './content/content.module';
 import { ProgressModule } from './progress/progress.module';
 import { LeaguesModule } from './leagues/leagues.module';
 import { LibraryModule } from './library/library.module';
+import { TrailModule } from './trails/trail.module';
+import { UsersModule } from './users/users.module';
 import { HackathonsModule } from './hackathons/hackathons.module';
 import { JobsModule } from './jobs/jobs.module';
 import { RealtimeModule } from './realtime/realtime.module';
@@ -27,6 +29,8 @@ import { WorkerModule } from './worker/worker.module';
     ProgressModule,
     LeaguesModule,
     LibraryModule,
+    TrailModule,
+    UsersModule,
     HackathonsModule,
     JobsModule,
     RealtimeModule,

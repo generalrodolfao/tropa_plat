@@ -61,6 +61,8 @@ model User {
   certificates   Certificate[]
   badges         UserBadge[]
   readingProgress ReadingProgress[]
+  trails         Trail[]
+  passwordResets PasswordResetToken[]
 
   @@index([status])
 }
@@ -185,6 +187,7 @@ model Course {
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
   modules Module[]
+  trails  Trail[]
 
   @@index([status])
   @@index([publishedAt])
@@ -332,6 +335,28 @@ enum SandboxEngine {
   r
   excel
 }
+
+model Trail {
+  id              String    @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  difficulty      String    @default("intermediate") // beginner/intermediate/advanced
+  status          String    @default("active") // active/paused/completed
+  progress        Int       @default(0)     @map("progress_percent")
+  userId          String    @map("user_id") @db.Uuid
+  courseId        String    @map("course_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([status])
+  @@index([difficulty])
+  @@map("trails")
+}
+
 
 model Sandbox {
   id               String        @id @default(uuid()) @db.Uuid
@@ -903,6 +928,23 @@ model ReadingProgress {
 
   @@unique([userId, ebookId])
   @@map("reading_progress")
+}
+
+// ---------- Reset de senha ----------
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
 }
 
 // ---------- Auditoria ----------
