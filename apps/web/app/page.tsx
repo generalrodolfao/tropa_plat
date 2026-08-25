@@ -107,10 +107,10 @@ function Nav() {
 
         <div className="flex items-center gap-2">
           <Button asChild variant="ghost" size="sm">
-            <Link href="/app">Entrar</Link>
+            <Link href="/login">Entrar</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/app">Alistar</Link>
+            <Link href="/cadastro">Alistar</Link>
           </Button>
         </div>
       </div>
@@ -150,7 +150,7 @@ function Hero() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="gap-2">
-              <Link href="/app">
+              <Link href="/cadastro">
                 <Target className="size-4" />
                 Iniciar missão de treinamento
               </Link>
@@ -324,7 +324,7 @@ function HackathonSection() {
               ))}
             </div>
             <Button asChild size="lg" className="mt-8 gap-2">
-              <Link href="/app">
+              <Link href="/login">
                 Ver o desafio aberto
                 <ChevronRight className="size-4" />
               </Link>
@@ -413,10 +413,10 @@ function CtaSection() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg">
-              <Link href="/app">Alistar-se na Tropa</Link>
+              <Link href="/cadastro">Alistar-se na Tropa</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/app">Ver planos</Link>
+              <Link href="/login">Ver planos</Link>
             </Button>
           </div>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
