@@ -1,6 +1,8 @@
 import { Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { LessonType } from '@prisma/client';
@@ -46,7 +48,8 @@ const FOLDERS = [
 
 @ApiTags('admin-seed')
 @Controller('admin/seed')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class AdminSeedController {
   constructor(private readonly prisma: PrismaService) {}
 
