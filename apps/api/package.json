@@ -16,7 +16,9 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "node .seed-dist/seed.js",
-    "db:seed:build": "tsc prisma/seed.ts --outDir .seed-dist --module commonjs --moduleResolution node --target es2020 --esModuleInterop --skipLibCheck --declaration false --sourceMap false"
+    "db:seed:build": "tsc prisma/seed.ts --outDir .seed-dist --module commonjs --moduleResolution node --target es2020 --esModuleInterop --skipLibCheck --declaration false --sourceMap false",
+    "db:seed:drive": "node .seed-dist/seed-drive.js",
+    "db:seed:drive:build": "tsc prisma/seed-drive.ts --outDir .seed-dist --module commonjs --moduleResolution node --target es2020 --esModuleInterop --skipLibCheck --declaration false --sourceMap false"
   },
   "dependencies": {
     "@fastify/static": "^10.1.3",

@@ -12,7 +12,7 @@ RUN pnpm install --filter @tropa/api... --frozen-lockfile
 
 FROM deps AS builder
 COPY apps/api apps/api
-RUN pnpm --filter @tropa/api db:generate && pnpm --filter @tropa/api db:seed:build && pnpm --filter @tropa/api build
+RUN pnpm --filter @tropa/api db:generate && pnpm --filter @tropa/api db:seed:build && pnpm --filter @tropa/api db:seed:drive:build && pnpm --filter @tropa/api build
 
 FROM base AS runner
 ENV NODE_ENV=production
