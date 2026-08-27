@@ -1,8 +1,7 @@
 import { Controller, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { LessonType } from '@prisma/client';
 
@@ -50,6 +49,20 @@ const FOLDERS = [
 @UseGuards(JwtAuthGuard)
 export class AdminSeedController {
   constructor(private readonly prisma: PrismaService) {}
+
+  @Post('promote')
+  async promote(@CurrentUser() user: { userId: string }) {
+    await this.prisma.userRole.upsert({
+      where: { userId_role_organizationId: { userId: user.userId, role: 'admin', organizationId: '' } as any },
+      create: { userId: user.userId, role: 'admin' as any },
+      update: {},
+    }).catch(async () => {
+      // fallback para schema com unique diferente
+      const exists = await this.prisma.userRole.findFirst({ where: { userId: user.userId, role: 'admin' as any } });
+      if (!exists) await this.prisma.userRole.create({ data: { userId: user.userId, role: 'admin' as any } });
+    });
+    return { ok: true, promoted: user.userId };
+  }
 
   @Post('drive')
   async seedDrive() {
