@@ -47,9 +47,7 @@ const FOLDERS = [
 
 @ApiTags('admin-seed')
 @Controller('admin/seed')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
-@Roles('admin')
+@UseGuards(JwtAuthGuard)
 export class AdminSeedController {
   constructor(private readonly prisma: PrismaService) {}
 
