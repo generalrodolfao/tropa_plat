@@ -130,6 +130,19 @@ export class CoursesService {
     });
   }
 
+  async updateLesson(lessonId: string, data: { title?: string; content?: any }) {
+    const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+    if (!lesson) throw new NotFoundException('Aula não encontrada');
+    
+    return this.prisma.lesson.update({
+      where: { id: lessonId },
+      data: {
+        ...(data.title && { title: data.title }),
+        ...(data.content && { content: data.content }),
+      },
+    });
+  }
+
   async createEbook(data: { slug: string; title: string; category?: string; pages?: number }) {
     return this.prisma.ebook.upsert({
       where: { slug: data.slug },

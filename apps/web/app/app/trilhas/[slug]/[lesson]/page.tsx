@@ -1,31 +1,62 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Play, Terminal, Brain, Swords, ChevronLeft, CheckCircle2, Bookmark, Captions } from "lucide-react"
-import { progressApi } from "@/lib/api/service"
+import { Play, Terminal, Brain, Swords, ChevronLeft, CheckCircle2, Bookmark, Captions, Clock, FileText, ChevronRight } from "lucide-react"
+import { progressApi, trailsApi } from "@/lib/api/service"
+import { VideoPlayer } from "@/components/video-player"
 
 export default function LessonPage() {
   const params = useParams<{ slug: string; lesson: string }>()
   const slug = params.slug as string
   const lessonId = params.lesson as string
   const [lesson, setLesson] = useState<any>(null)
+  const [videoData, setVideoData] = useState<any>(null)
+  const [transcript, setTranscript] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [completing, setCompleting] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [xpAwarded, setXpAwarded] = useState<number | null>(null)
+  const [activeTranscriptIdx, setActiveTranscriptIdx] = useState<number | null>(null)
+  const [nextLesson, setNextLesson] = useState<any>(null)
 
   useEffect(() => {
     if (!lessonId) return
     ;(async () => {
       try {
-        const data = await progressApi.getLesson(lessonId)
+        const data = await progressApi.getLesson(lessonId) as any
         setLesson(data)
+
+        // Buscar vídeo se for tipo video
+        if (data.type === "video") {
+          try {
+            const vidRes = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/v1/video/lesson/${lessonId}`,
+              { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } }
+            )
+            if (vidRes.ok) {
+              const vid = await vidRes.json()
+              setVideoData(vid)
+              if (vid.transcript) setTranscript(vid.transcript)
+            }
+          } catch {}
+        }
+
+        // Buscar próxima aula
+        try {
+          const course = await trailsApi.getCourse(data.module?.course?.slug) as any
+          const allLessons = course.modules?.flatMap((m: any) => m.lessons ?? []) ?? []
+          const currentIdx = allLessons.findIndex((l: any) => l.id === lessonId)
+          if (currentIdx !== -1 && currentIdx < allLessons.length - 1) {
+            setNextLesson(allLessons[currentIdx + 1])
+          }
+        } catch {}
+
         // marca started
         try {
           await progressApi.start(lessonId)
@@ -37,6 +68,21 @@ export default function LessonPage() {
       }
     })()
   }, [lessonId])
+
+  const handleVideoProgress = useCallback((seconds: number) => {
+    // Atualizar transcrição ativa baseado no tempo
+    if (transcript?.sentences) {
+      const idx = transcript.sentences.findIndex(
+        (s: any) => seconds >= s.start && seconds <= s.end
+      )
+      if (idx !== -1) setActiveTranscriptIdx(idx)
+    }
+  }, [transcript])
+
+  const handleVideoEnded = useCallback(() => {
+    // Auto-complete quando vídeo terminar
+    onComplete()
+  }, [])
 
   async function onComplete() {
     setCompleting(true)
@@ -56,6 +102,7 @@ export default function LessonPage() {
   if (!lesson) return <div className="p-8 text-sm">Aula não encontrada</div>
 
   const course = lesson.module?.course
+  const hasVideo = videoData?.status === "ready" && videoData?.hlsUrl
 
   return (
     <div className="space-y-6">
@@ -74,7 +121,14 @@ export default function LessonPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="space-y-6">
-          <LessonContent type={lesson.type} title={lesson.title} />
+          <LessonContent
+            type={lesson.type}
+            title={lesson.title}
+            hasVideo={hasVideo}
+            videoData={videoData}
+            onProgress={handleVideoProgress}
+            onEnded={handleVideoEnded}
+          />
           <div className="hud-corners flex items-center justify-between rounded-xl border border-primary/40 bg-primary/5 p-4">
             <div>
               <div className="font-mono text-[10px] uppercase tracking-widest text-primary">Estado da missão</div>
@@ -82,9 +136,18 @@ export default function LessonPage() {
                 {completed ? `Concluída! +${xpAwarded ?? lesson.xpAward} XP creditado` : "Execute esta missão para ganhar XP e liberar a próxima"}
               </div>
             </div>
-            <Button size="lg" className="gap-2" onClick={onComplete} disabled={completing || completed}>
-              {completed ? <><CheckCircle2 className="size-4" /> Concluída</> : completing ? "Salvando..." : <>Concluir missão <CheckCircle2 className="size-4" /></>}
-            </Button>
+            <div className="flex items-center gap-2">
+              {nextLesson && (
+                <Button asChild size="lg" variant="outline" className="gap-2">
+                  <Link href={`/app/trilhas/${slug}/${nextLesson.id}`}>
+                    Próxima aula <ChevronRight className="size-4" />
+                  </Link>
+                </Button>
+              )}
+              <Button size="lg" className="gap-2" onClick={onComplete} disabled={completing || completed}>
+                {completed ? <><CheckCircle2 className="size-4" /> Concluída</> : completing ? "Salvando..." : <>Concluir missão <CheckCircle2 className="size-4" /></>}
+              </Button>
+            </div>
           </div>
           {completed && (
             <p className="text-center font-mono text-xs text-accent">XP creditado de forma idempotente (unique_key lesson-{lessonId})</p>
@@ -102,12 +165,38 @@ export default function LessonPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Transcrição clicável */}
           <Card className="hud-corners border-border/70 bg-card/70">
             <CardContent className="p-4">
               <div className="mb-2 flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 <Captions className="size-3.5" /> Transcrição
               </div>
-              <p className="text-xs leading-relaxed text-muted-foreground">{lesson.content?.transcript ?? "Transcrição disponível após processamento do vídeo (Cloudflare Stream)."}</p>
+              {transcript?.sentences ? (
+                <div className="max-h-[300px] space-y-1 overflow-y-auto">
+                  {transcript.sentences.map((sentence: any, idx: number) => (
+                    <button
+                      key={idx}
+                      className={`block w-full rounded px-2 py-1 text-left text-xs transition-colors ${
+                        activeTranscriptIdx === idx
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                      }`}
+                      onClick={() => {
+                        const video = document.querySelector("video")
+                        if (video) video.currentTime = sentence.start
+                      }}
+                    >
+                      <Clock className="mr-1 inline size-3" />
+                      {sentence.text}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {transcript?.text ?? "Transcrição disponível após processamento do vídeo (Cloudflare Stream)."}
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -116,10 +205,40 @@ export default function LessonPage() {
   )
 }
 
-function LessonContent({ type, title }: { type: string; title: string }) {
+function LessonContent({ type, title, hasVideo, videoData, onProgress, onEnded }: {
+  type: string
+  title: string
+  hasVideo?: boolean
+  videoData?: any
+  onProgress?: (seconds: number) => void
+  onEnded?: () => void
+}) {
   if (type === "sandbox") return <SandboxMock title={title} />
   if (type === "quiz") return <QuizMock />
   if (type === "project") return <ProjectMock />
+  if (type === "article") return <ArticleMock title={title} />
+
+  // Video lesson
+  if (hasVideo && videoData) {
+    return (
+      <div className="space-y-4">
+        <VideoPlayer
+          hlsUrl={videoData.hlsUrl}
+          mp4Url={videoData.mp4Url}
+          title={title}
+          onProgress={onProgress}
+          onEnded={onEnded}
+        />
+        <CardContent className="rounded-xl border border-border/70 bg-card/70 p-5">
+          <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Assista ao vídeo completo. O progresso é salvo automaticamente. Ao finalizar, clique em &ldquo;Concluir missão&rdquo; para ganhar XP.
+          </p>
+        </CardContent>
+      </div>
+    )
+  }
+
   return <VideoMock title={title} />
 }
 
@@ -140,7 +259,9 @@ function VideoMock({ title }: { title: string }) {
         </div>
       </div>
       <CardContent className="p-5">
-        <p className="text-sm leading-relaxed text-muted-foreground">Assista e clique em “Concluir missão” ao final — o XP é creditado via <span className="font-mono text-primary">POST /v1/progress/complete</span> com idempotência.</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Vídeo ainda não disponível. Faça upload do vídeo no painel admin para habilitar o player.
+        </p>
       </CardContent>
     </Card>
   )
@@ -157,7 +278,7 @@ function SandboxMock({ title }: { title: string }) {
         <Badge variant="secondary" className="px-2 py-0 font-mono text-[10px]">roda no navegador</Badge>
       </div>
       <CardContent className="p-5 font-mono text-sm">
-        <p className="text-muted-foreground">Sandbox no browser — datasets via R2/CDN, execução WASM. Na entrega real, o botão “Concluir” valida via servidor (hidden tests).</p>
+        <p className="text-muted-foreground">Sandbox no browser — datasets via R2/CDN, execução WASM. Na entrega real, o botão &ldquo;Concluir&rdquo; valida via servidor (hidden tests).</p>
         <div className="mt-4 rounded-lg border border-border/60 bg-background/60 p-3">
           <pre className="overflow-x-auto text-xs">SELECT * FROM vendas WHERE estado = 'SP' LIMIT 5;</pre>
         </div>
@@ -171,7 +292,7 @@ function QuizMock() {
     <Card className="hud-corners overflow-hidden border-border/70 bg-card/70">
       <CardContent className="p-8 text-center">
         <Brain className="mx-auto size-10 text-sky-400" />
-        <p className="mt-3 text-sm text-muted-foreground">Quiz adaptativo (IRT) — em implementação. Por enquanto use “Concluir missão” para simular aprovação e ganhar XP.</p>
+        <p className="mt-3 text-sm text-muted-foreground">Quiz adaptativo (IRT) — em implementação. Por enquanto use &ldquo;Concluir missão&rdquo; para simular aprovação e ganhar XP.</p>
       </CardContent>
     </Card>
   )
@@ -184,6 +305,22 @@ function ProjectMock() {
         <Swords className="mx-auto size-10 text-amber-400" />
         <p className="mt-3 text-sm text-muted-foreground">Projeto com correção auto/mentor — submissão via R2 + grading.</p>
         <Button className="mt-4 gap-2"><Bookmark className="size-4" /> Submeter projeto</Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+function ArticleMock({ title }: { title: string }) {
+  return (
+    <Card className="hud-corners overflow-hidden border-border/70 bg-card/70">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <FileText className="size-4 text-muted-foreground" />
+          <span className="font-display text-lg font-semibold text-foreground">{title}</span>
+        </div>
+        <div className="prose prose-sm prose-invert max-w-none text-muted-foreground">
+          <p>Conteúdo do artigo será carregado do campo <code>content</code> da aula.</p>
+        </div>
       </CardContent>
     </Card>
   )

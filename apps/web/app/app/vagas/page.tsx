@@ -1,12 +1,59 @@
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input";
-import { Briefcase, MapPin, Search, SlidersHorizontal, Zap, FileText, ChevronRight } from "lucide-react";
-import { VAGAS } from "@/lib/mock-inner";
+"use client"
+
+import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
+import { Briefcase, MapPin, Search, SlidersHorizontal, FileText, ChevronRight, ExternalLink } from "lucide-react"
+import { vagasApi } from "@/lib/api/service"
+
+interface Vaga {
+  id: string
+  title: string
+  description: string | null
+  location: string | null
+  workMode: string | null
+  salaryMin: number | null
+  salaryMax: number | null
+  seniority: string | null
+  skills: Array<{ skillId: string; level: number }> | null
+  status: string
+  postedAt: string
+  organization?: { name: string }
+}
 
 export default function VagasPage() {
+  const [vagas, setVagas] = useState<Vaga[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+
+  useEffect(() => {
+    loadVagas()
+  }, [])
+
+  async function loadVagas() {
+    try {
+      const data = await vagasApi.list()
+      setVagas(Array.isArray(data) ? data : [])
+    } catch {
+      // silently fail
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const filteredVagas = vagas.filter((v) => {
+    if (!search) return true
+    const term = search.toLowerCase()
+    return (
+      v.title.toLowerCase().includes(term) ||
+      v.description?.toLowerCase().includes(term) ||
+      v.organization?.name.toLowerCase().includes(term)
+    )
+  })
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -17,108 +64,95 @@ export default function VagasPage() {
             Seu CV é analisado contra cada vaga · easy-apply em um clique
           </p>
         </div>
-        <div className="hud-corners flex items-center gap-3 rounded-lg border border-border/70 bg-card/70 px-4 py-3">
-          <div className="grid size-10 place-items-center rounded-full border border-primary/50 bg-primary/15 font-mono text-sm font-bold text-primary">
-            <FileText className="size-5" />
-          </div>
-          <div>
-            <div className="text-sm font-medium text-foreground">rodolfo_cv.pdf</div>
-            <div className="font-mono text-[11px] text-accent">CV atual · revisado há 2 dias</div>
-          </div>
-        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-64 flex-1">
           <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Buscar por cargo, empresa ou skill…" className="pl-9" />
+          <Input
+            placeholder="Buscar por cargo, empresa ou skill…"
+            className="pl-9"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        <Button variant="outline" className="gap-2">
-          <SlidersHorizontal className="size-4" /> Filtros
-        </Button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="px-3 py-1">Todos ({VAGAS.length})</Badge>
-        <Badge variant="outline" className="px-3 py-1 font-mono text-[11px] text-accent">fit ≥ 70</Badge>
-        <Badge variant="outline" className="px-3 py-1 font-mono text-[11px] text-foreground">Remoto</Badge>
-        <Badge variant="outline" className="px-3 py-1 font-mono text-[11px] text-foreground">Júnior</Badge>
-      </div>
-
-      <div className="space-y-3">
-        {VAGAS.map((v) => {
-          const high = v.fitScore >= 75;
-          const mid = v.fitScore >= 55;
-          return (
-            <Card key={v.id} className={`hud-corners border-border/70 bg-card/70 ${high ? "border-accent/40" : ""}`}>
-              <CardContent className="flex flex-wrap items-center gap-5 p-5">
-                <div className="grid size-12 shrink-0 place-items-center rounded-lg border border-primary/30 bg-primary/10 font-display text-base font-bold text-primary">
-                  {v.companyLogo}
+      {loading ? (
+        <div className="p-8 text-center text-muted-foreground">Carregando vagas...</div>
+      ) : filteredVagas.length === 0 ? (
+        <Card className="border-border/60 bg-card/60">
+          <CardContent className="p-8 text-center">
+            <Briefcase className="mx-auto mb-4 size-12 text-muted-foreground" />
+            <h3 className="font-display text-lg font-semibold text-foreground">Nenhuma vaga encontrada</h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {search ? "Tente outro termo de busca." : "Novas vagas serão adicionadas em breve."}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {filteredVagas.map((vaga) => (
+            <Card key={vaga.id} className="hud-corners border-border/70 bg-card/70 transition-colors hover:border-primary/30">
+              <CardContent className="p-5">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex items-start gap-4">
+                    <div className="grid size-11 place-items-center rounded-lg border border-border bg-muted">
+                      <Briefcase className="size-5 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <h3 className="font-display text-base font-semibold text-foreground">{vaga.title}</h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[11px] text-muted-foreground">
+                        {vaga.organization?.name && <span>{vaga.organization.name}</span>}
+                        {vaga.location && (
+                          <>
+                            <span className="text-border">·</span>
+                            <span className="flex items-center gap-1"><MapPin className="size-3" />{vaga.location}</span>
+                          </>
+                        )}
+                        {vaga.workMode && (
+                          <>
+                            <span className="text-border">·</span>
+                            <span>{vaga.workMode}</span>
+                          </>
+                        )}
+                        {vaga.seniority && (
+                          <>
+                            <span className="text-border">·</span>
+                            <span>{vaga.seniority}</span>
+                          </>
+                        )}
+                      </div>
+                      {vaga.salaryMin && vaga.salaryMax && (
+                        <div className="mt-2 font-mono text-sm font-bold text-primary">
+                          R$ {vaga.salaryMin.toLocaleString("pt-BR")} - R$ {vaga.salaryMax.toLocaleString("pt-BR")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" className="gap-1.5">
+                      Candidatar <ChevronRight className="size-3.5" />
+                    </Button>
+                  </div>
                 </div>
-
-                <div className="min-w-48 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-display text-lg font-semibold text-foreground">{v.title}</h3>
-                    <span className="font-mono text-[11px] text-muted-foreground">{v.seniority}</span>
-                  </div>
-                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span>{v.company}</span>
-                    <span className="flex items-center gap-1">
-                      <MapPin className="size-3.5" /> {v.location}
-                    </span>
-                    <Badge variant="secondary" className="px-2 py-0 text-[10px]">{v.mode}</Badge>
-                    <span className="font-mono text-xs text-foreground">{v.salary}</span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {v.skills.map((s) => (
-                      <Badge key={s} variant="outline" className="px-2 py-0 font-mono text-[10px]">{s}</Badge>
+                {vaga.description && (
+                  <p className="mt-3 line-clamp-2 text-sm text-muted-foreground">{vaga.description}</p>
+                )}
+                {vaga.skills && vaga.skills.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {vaga.skills.slice(0, 5).map((skill, i) => (
+                      <Badge key={i} variant="outline" className="font-mono text-[10px]">
+                        Nível {skill.level}
+                      </Badge>
                     ))}
-                    {v.tags.map((t) => (
-                      <Badge key={t} className="px-2 py-0 text-[10px]">{t}</Badge>
-                    ))}
                   </div>
-                </div>
-
-                <div className="w-40">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <span className="flex items-center gap-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                      <Zap className="size-3" /> fit-score
-                    </span>
-                    <span className={`font-mono text-lg font-bold ${high ? "text-accent" : mid ? "text-primary" : "text-muted-foreground"}`}>
-                      {v.fitScore}
-                    </span>
-                  </div>
-                  <Progress
-                    value={v.fitScore}
-                    className="h-1.5"
-                    indicatorClassName={high ? "bg-accent" : mid ? "bg-primary" : "bg-muted-foreground"}
-                  />
-                  <div className="mt-1.5 font-mono text-[10px] text-muted-foreground">
-                    {high ? "forte candidatura" : mid ? "bom perfil" : "faltam skills"}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <Button className="gap-1.5">
-                    Candidatar <ChevronRight className="size-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-                    <Briefcase className="size-3.5" /> Ver detalhes
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
-
-      <div className="hud-corners flex items-start gap-3 rounded-xl border border-border/60 bg-muted/30 p-4">
-        <Zap className="mt-0.5 size-5 shrink-0 text-accent" />
-        <p className="text-sm text-muted-foreground">
-          O fit-score cruza seu <span className="font-medium text-foreground">PDI + CV</span> com os requisitos da
-          vaga. Não é sorteio — é o mapa de onde você já está pronto para entrar.
-        </p>
-      </div>
+          ))}
+        </div>
+      )}
     </div>
-  );
+  )
 }

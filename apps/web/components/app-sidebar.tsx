@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Shield, LayoutDashboard, BookOpen, Trophy, Briefcase, FileText, Route, Library, Swords, LogOut, Menu } from "lucide-react"
+import { Shield, LayoutDashboard, BookOpen, Trophy, Briefcase, FileText, Route, Library, Swords, LogOut, Menu, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/store/authStore"
 
@@ -20,6 +20,7 @@ const NAV = [
 export function AppSidebar() {
   const { user, logout } = useAuthStore()
   const router = useRouter()
+  const isAdmin = user?.roles?.includes("admin")
 
   async function onLogout() {
     await logout()
@@ -54,6 +55,15 @@ export function AppSidebar() {
             {item.label}
           </Link>
         ))}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mt-4 border-t border-border/60 pt-4"
+          >
+            <Settings className="size-4 transition-colors group-hover:text-primary" />
+            Admin
+          </Link>
+        )}
       </nav>
 
       <div className="border-t border-border/60 p-4">

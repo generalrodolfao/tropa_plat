@@ -253,3 +253,102 @@ export const progressApi = {
     return handle(res)
   },
 }
+
+// Admin — gestão de conteúdo, usuários e pagamentos
+export const adminApi = {
+  // Cursos
+  listCourses: async (params?: { page?: number; limit?: number }) => {
+    const p = new URLSearchParams()
+    if (params?.page) p.set("page", String(params.page))
+    if (params?.limit) p.set("limit", String(params.limit))
+    const res = await fetch(`${API_BASE}/admin/content/courses?${p}`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  createCourse: async (data: { title: string; slug: string; description?: string; level?: string }) => {
+    const res = await fetch(`${API_BASE}/admin/content/courses`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  publishCourse: async (courseId: string) => {
+    const res = await fetch(`${API_BASE}/admin/content/courses/${courseId}/publish`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+    })
+    return handle(res)
+  },
+
+  createModule: async (courseId: string, data: { title: string; position: number; type?: string }) => {
+    const res = await fetch(`${API_BASE}/admin/content/courses/${courseId}/modules`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  createLesson: async (moduleId: string, data: { title: string; position: number; type: string; xpAward?: number }) => {
+    const res = await fetch(`${API_BASE}/admin/content/modules/${moduleId}/lessons`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  // Usuários
+  listUsers: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const p = new URLSearchParams()
+    if (params?.page) p.set("page", String(params.page))
+    if (params?.limit) p.set("limit", String(params.limit))
+    if (params?.search) p.set("search", params.search)
+    const res = await fetch(`${API_BASE}/admin/users?${p}`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  updateUser: async (userId: string, data: { status?: string; roles?: string[] }) => {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  // Pagamentos
+  listSubscriptions: async (params?: { page?: number; limit?: number; status?: string }) => {
+    const p = new URLSearchParams()
+    if (params?.page) p.set("page", String(params.page))
+    if (params?.limit) p.set("limit", String(params.limit))
+    if (params?.status) p.set("status", params.status)
+    const res = await fetch(`${API_BASE}/payments/admin/subscriptions?${p}`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  listPlans: async () => {
+    const res = await fetch(`${API_BASE}/payments/admin/plans`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  createPlan: async (data: { code: string; name: string; type: string; priceCents: number; billingCycle: string }) => {
+    const res = await fetch(`${API_BASE}/payments/admin/plans`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  createCoupon: async (data: { code: string; type: string; value: number; maxUses?: number; expiresAt?: string }) => {
+    const res = await fetch(`${API_BASE}/payments/admin/coupons`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+}

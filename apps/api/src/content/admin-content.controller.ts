@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Param, Post, Patch, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -27,6 +27,11 @@ export class AdminContentController {
   @Post('modules/:moduleId/lessons')
   createLesson(@Param('moduleId') moduleId: string, @Body() dto: CreateLessonDto) {
     return this.courses.createLesson(moduleId, dto);
+  }
+
+  @Patch('lessons/:lessonId')
+  updateLesson(@Param('lessonId') lessonId: string, @Body() dto: any) {
+    return this.courses.updateLesson(lessonId, dto);
   }
 
   @Post('ebooks')

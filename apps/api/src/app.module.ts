@@ -14,6 +14,15 @@ import { HackathonsModule } from './hackathons/hackathons.module';
 import { JobsModule } from './jobs/jobs.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { WorkerModule } from './worker/worker.module';
+import { PaymentsModule } from './payments/payments.module';
+import { VideoModule } from './video/video.module';
+import { QuizzesModule } from './quizzes/quizzes.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { AIModule } from './ai/ai.module';
+import { PDIModule } from './pdi/pdi.module';
+import { ProjectsModule } from './projects/projects.module';
+import { B2BModule } from './b2b/b2b.module';
+import { CertificatesModule } from './certificates/certificates.module';
 
 @Module({
   imports: [
@@ -35,6 +44,15 @@ import { WorkerModule } from './worker/worker.module';
     JobsModule,
     RealtimeModule,
     WorkerModule,
+    PaymentsModule,
+    VideoModule,
+    QuizzesModule,
+    NotificationsModule,
+    AIModule,
+    PDIModule,
+    ProjectsModule,
+    B2BModule,
+    CertificatesModule,
   ],
 })
 export class AppModule {}

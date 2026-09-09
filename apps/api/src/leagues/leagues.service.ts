@@ -1,11 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
 @Injectable()
 export class LeaguesService {
   private readonly logger = new Logger(LeaguesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly realtime: RealtimeGateway,
+  ) {}
 
   async current(userId: string) {
     const monday = this.weekStart();
@@ -114,6 +118,14 @@ export class LeaguesService {
       ),
     );
 
+    // Broadcast new league to all connected users
+    this.realtime.emitToAll('league:new', {
+      leagueId: league.id,
+      season: league.season,
+      cohortSize,
+      promotionCount,
+    });
+
     return league;
   }
 
@@ -131,6 +143,48 @@ export class LeaguesService {
       data: { status: 'settled' },
     });
 
+    // Get users for promotion/relegation broadcast
+    const previousLeague = await this.prisma.league.findFirst({
+      where: { status: 'settled', weekEnd: { lte: prevWeekEnd } },
+      include: {
+        rankings: {
+          orderBy: { rank: 'asc' },
+          select: { userId: true, rank: true, eligiblePromotion: true },
+        },
+      },
+      orderBy: { weekEnd: 'desc' },
+    });
+
+    if (previousLeague) {
+      const promoted = previousLeague.rankings.filter((r) => r.eligiblePromotion);
+      const relegated = previousLeague.rankings.filter(
+        (r) => r.rank > previousLeague.cohortSize - previousLeague.promotionCount,
+      );
+
+      // Notify promoted users
+      for (const user of promoted) {
+        this.realtime.emitToUser(user.userId, 'league:promoted', {
+          leagueId: previousLeague.id,
+          rank: user.rank,
+        });
+      }
+
+      // Notify relegated users
+      for (const user of relegated) {
+        this.realtime.emitToUser(user.userId, 'league:relegated', {
+          leagueId: previousLeague.id,
+          rank: user.rank,
+        });
+      }
+
+      // Broadcast settled event
+      this.realtime.emitToAll('league:settled', {
+        leagueId: previousLeague.id,
+        promotedCount: promoted.length,
+        relegatedCount: relegated.length,
+      });
+    }
+
     await this.prisma.userXp.updateMany({
       where: { weekXp: { gt: 0 } },
       data: { weekXp: 0 },
@@ -140,6 +194,26 @@ export class LeaguesService {
       `Ligas encerradas: ${settled.count} · week_xp zerado (${now.toISOString()})`,
     );
     return settled.count;
+  }
+
+  /** Broadcast ranking updates in real-time */
+  async broadcastRankingUpdate(leagueId: string) {
+    const league = await this.prisma.league.findUnique({
+      where: { id: leagueId },
+      include: {
+        rankings: {
+          orderBy: { rank: 'asc' },
+          include: { user: { select: { id: true, name: true } } },
+        },
+      },
+    });
+
+    if (league) {
+      this.realtime.emitToAll('league:ranking-update', {
+        leagueId,
+        rankings: league.rankings,
+      });
+    }
   }
 
   /** Job semanal: criação + encerramento da liga anterior. */

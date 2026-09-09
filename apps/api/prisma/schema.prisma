@@ -63,6 +63,9 @@ model User {
   readingProgress ReadingProgress[]
   trails         Trail[]
   passwordResets PasswordResetToken[]
+  subscriptions  Subscription[]
+  notes          Note[]
+  notificationPrefs NotificationPref[]
 
   @@index([status])
 }
@@ -134,6 +137,7 @@ model Organization {
   memberships CompanyMembership[]
   jobs        Job[]
   hackathons  Hackathon[]
+  subscriptions Subscription[]
 
   @@index([type])
 }
@@ -153,6 +157,178 @@ model CompanyMembership {
   @@unique([userId, organizationId])
   @@index([organizationId])
   @@map("company_memberships")
+}
+
+// ---------- Planos, assinaturas, pagamentos ----------
+
+enum PlanType {
+  b2c_monthly
+  b2c_annual
+  b2b_seats
+  institution
+}
+
+enum SubStatus {
+  trialing
+  active
+  past_due
+  canceled
+  paused
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  failed
+  refunded
+  chargeback
+}
+
+enum TransactionType {
+  revenue
+  fee
+  refund
+  prize_payout
+}
+
+enum CouponType {
+  percent
+  fixed
+  month_free
+}
+
+enum VideoStatus {
+  processing
+  ready
+  error
+}
+
+model Plan {
+  id            String   @id @default(uuid()) @db.Uuid
+  code          String   @unique
+  name          String
+  type          PlanType
+  priceCents    Int      @map("price_cents")
+  billingCycle  String   @map("billing_cycle") // monthly, annual
+  features      Json     // { sandbox_hours, seats, certificates, mentor_access }
+  xpMultiplier  Float    @default(1.0) @map("xps_multiplier")
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  subscriptions Subscription[]
+
+  @@map("plans")
+}
+
+model Subscription {
+  id                       String    @id @default(uuid()) @db.Uuid
+  userId                   String?   @map("user_id") @db.Uuid
+  organizationId           String?   @map("organization_id") @db.Uuid
+  planId                   String    @map("plan_id") @db.Uuid
+  provider                 String    @default("mercadopago")
+  providerSubscriptionId   String?   @map("provider_subscription_id")
+  status                   SubStatus @default(trialing)
+  trialEndsAt              DateTime? @map("trial_ends_at")
+  periodStart              DateTime? @map("period_start")
+  periodEnd                DateTime? @map("period_end")
+  cancelAt                 DateTime? @map("cancel_at")
+  seatsUsed                Int       @default(0) @map("seats_used")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+
+  user         User?          @relation(fields: [userId], references: [id])
+  organization Organization?  @relation(fields: [organizationId], references: [id])
+  plan         Plan           @relation(fields: [planId], references: [id])
+  payments     Payment[]
+  transactions Transaction[]
+  coupons      CouponRedemption[]
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id                    String        @id @default(uuid()) @db.Uuid
+  subscriptionId        String        @map("subscription_id") @db.Uuid
+  providerPaymentId     String?       @unique @map("provider_payment_id")
+  amountCents           Int           @map("amount_cents")
+  status                PaymentStatus @default(pending)
+  method                String?       // pix, card, boleto
+  installments          Int           @default(1)
+  dueDate               DateTime      @map("due_date")
+  paidAt                DateTime?     @map("paid_at")
+  receiptUrl            String?       @map("receipt_url")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Transaction {
+  id              String          @id @default(uuid()) @db.Uuid
+  subscriptionId  String?         @map("subscription_id") @db.Uuid
+  type            TransactionType
+  amountCents     Int             @map("amount_cents")
+  netCents        Int?            @map("net_cents")
+  providerMeta    Json?           @map("provider_meta")
+  status          String          @default("pending")
+  createdAt       DateTime        @default(now()) @map("created_at")
+
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([subscriptionId])
+  @@index([type])
+  @@map("transactions")
+}
+
+model Coupon {
+  id         String     @id @default(uuid()) @db.Uuid
+  code       String     @unique
+  type       CouponType
+  value      Int        // percent (1-100) ou centavos
+  maxUses    Int?       @map("max_uses")
+  usesCount  Int        @default(0) @map("uses_count")
+  expiresAt  DateTime?  @map("expires_at")
+  stackable  Boolean    @default(false)
+  active     Boolean    @default(true)
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  redemptions CouponRedemption[]
+
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id             String   @id @default(uuid()) @db.Uuid
+  couponId       String   @map("coupon_id") @db.Uuid
+  subscriptionId String   @map("subscription_id") @db.Uuid
+  usedAt         DateTime @default(now()) @map("used_at")
+
+  coupon       Coupon       @relation(fields: [couponId], references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@unique([couponId, subscriptionId])
+  @@map("coupon_redemptions")
+}
+
+model WebhookEvent {
+  id           String    @id @default(uuid()) @db.Uuid
+  provider     String
+  eventId      String    @unique @map("event_id")
+  payload      Json
+  status       String    @default("pending") // pending/processed/failed
+  processedAt  DateTime? @map("processed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([provider, eventId])
+  @@map("webhook_events")
 }
 
 // ---------- Conteúdo ----------
@@ -227,6 +403,8 @@ model Lesson {
   quiz       Quiz?
   sandbox    Sandbox?
   project    Project?
+  videoAsset VideoAsset?
+  notes      Note[]
   requires   LessonRequirement[] @relation("requires")
   requiredBy LessonRequirement[] @relation("requiredBy")
 
@@ -242,6 +420,57 @@ model LessonRequirement {
 
   @@id([lessonId, requiresLessonId])
   @@map("lesson_requires")
+}
+
+model VideoAsset {
+  id              String      @id @default(uuid()) @db.Uuid
+  lessonId        String      @unique @map("lesson_id") @db.Uuid
+  provider        String      @default("cloudflare_stream")
+  providerUid     String?     @unique @map("provider_uid")
+  status          VideoStatus @default(processing)
+  hlsUrl          String?     @map("hls_url")
+  mp4Url          String?     @map("mp4_url")
+  duration        Int?        // seconds
+  renditions      Json?
+  watermark       Boolean     @default(true)
+  storageMinutes  Float?      @map("storage_minutes")
+  captions        Json?
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  lesson     Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  transcript Transcript?
+
+  @@map("video_assets")
+}
+
+model Transcript {
+  id             String   @id @default(uuid()) @db.Uuid
+  videoAssetId   String   @unique @map("video_asset_id") @db.Uuid
+  lang           String   @default("pt-BR")
+  text           String
+  sentences      Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  videoAsset VideoAsset @relation(fields: [videoAssetId], references: [id], onDelete: Cascade)
+
+  @@map("transcripts")
+}
+
+model Note {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id") @db.Uuid
+  lessonId         String   @map("lesson_id") @db.Uuid
+  content          String
+  timestampSeconds Int?     @map("timestamp_seconds")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId, timestampSeconds])
+  @@map("notes")
 }
 
 model LessonProgress {
@@ -720,6 +949,19 @@ model Device {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model NotificationPref {
+  id        String  @id @default(uuid()) @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  category  String
+  channel   String  // in_app, push, email
+  enabled   Boolean @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, category, channel])
+  @@map("notification_prefs")
 }
 
 // ---------- Mural de vagas ----------
