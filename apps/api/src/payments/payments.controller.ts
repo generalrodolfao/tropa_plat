@@ -12,7 +12,12 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { WebhookHandler } from './webhook.handler';
-import { CreateCheckoutDto, ApplyCouponDto, WebhookMercadoPagoDto, CreatePlanDto } from './dto/payments.dto';
+import {
+  CreateCheckoutDto,
+  ApplyCouponDto,
+  WebhookMercadoPagoDto,
+  CreatePlanDto,
+} from './dto/payments.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -150,7 +155,15 @@ export class PaymentsController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Criar cupom (admin)' })
   async createCoupon(
-    @Body() body: { code: string; type: string; value: number; maxUses?: number; expiresAt?: string; stackable?: boolean },
+    @Body()
+    body: {
+      code: string;
+      type: string;
+      value: number;
+      maxUses?: number;
+      expiresAt?: string;
+      stackable?: boolean;
+    },
   ) {
     return this.paymentsService.createCoupon({
       ...body,

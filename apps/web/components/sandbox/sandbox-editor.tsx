@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, useEffect } from "react"
+import { useState, useRef, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -34,12 +34,6 @@ export function SandboxEditor({
   onRun,
   readOnly = false,
 }: SandboxEditorProps) {
-  const [code, setCode] = useState(initialCode)
-  const [result, setResult] = useState<ExecutionResult | null>(null)
-  const [running, setRunning] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
   // Templates por engine
   const templates: Record<SandboxEngine, string> = {
     sql: `-- Conecte-se ao dataset e explore os dados
@@ -69,11 +63,16 @@ print("Olá do Sandbox Python!")
 print("Execute código Python diretamente no navegador.")`,
   }
 
-  useEffect(() => {
-    if (!initialCode) {
-      setCode(templates[engine])
-    }
-  }, [engine])
+  const [code, setCode] = useState(() => initialCode || templates[engine])
+  const [prevEngine, setPrevEngine] = useState(engine)
+  if (prevEngine !== engine) {
+    setPrevEngine(engine)
+    setCode(initialCode || templates[engine])
+  }
+  const [result, setResult] = useState<ExecutionResult | null>(null)
+  const [running, setRunning] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   const handleRun = useCallback(async () => {
     if (!code.trim() || running) return
@@ -236,7 +235,7 @@ async function executeCode(
 async function executeSQL(code: string, datasetUrl?: string): Promise<{ output: string; rowCount?: number }> {
   // Usar DuckDB-WASM via dynamic import
   // @ts-ignore - duckdb-wasm não tem declarações de tipo
-  const duckdb = await import("duckdb-wasm")
+  const duckdb = await import("@duckdb/duckdb-wasm")
 
   const bundles = duckdb.getJsDelivrBundles()
   const bundle = await duckdb.selectBundle(bundles)
@@ -325,6 +324,7 @@ sys.stdout = _captured = StringIO()
 
     return { output: captured || "Código executado com sucesso." }
   } finally {
-    runtime.destroy()
+    // typos do pyodide não expõem destroy() (gap conhecido) — existe no runtime
+    ;(runtime as any).destroy()
   }
 }

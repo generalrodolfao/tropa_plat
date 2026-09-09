@@ -1,7 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MercadoPagoAdapter } from './mercadopago.adapter';
-import { CreateCheckoutDto, ApplyCouponDto, CreatePlanDto } from './dto/payments.dto';
+import {
+  CreateCheckoutDto,
+  ApplyCouponDto,
+  CreatePlanDto,
+} from './dto/payments.dto';
 import { randomUUID } from 'crypto';
 
 @Injectable()
@@ -15,11 +19,16 @@ export class PaymentsService {
 
   // ---------- Checkout ----------
 
-  async checkout(userId: string, dto: CreateCheckoutDto): Promise<{ checkoutUrl?: string; subscriptionId: string }> {
+  async checkout(
+    userId: string,
+    dto: CreateCheckoutDto,
+  ): Promise<{ checkoutUrl?: string; subscriptionId: string }> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error('USER_NOT_FOUND');
 
-    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+    const plan = await this.prisma.plan.findUnique({
+      where: { id: dto.planId },
+    });
     if (!plan || !plan.active) throw new Error('PLAN_NOT_FOUND');
 
     // Verificar se já tem assinatura ativa
@@ -29,19 +38,12 @@ export class PaymentsService {
     if (existingSub) throw new Error('ACTIVE_SUBSCRIPTION_EXISTS');
 
     // Buscar ou criar customer no MP
-    let customerId: string;
-    const existingCustomer = await this.prisma.subscription.findFirst({
-      where: { userId },
-      select: { providerSubscriptionId: true },
-    });
-
-    // Criar customer via MP
     const mpCustomer = await this.mp.createCustomer({
       email: user.email,
       name: user.name,
       externalReference: userId,
     });
-    customerId = mpCustomer.id;
+    const customerId = mpCustomer.id;
 
     // Criar plano no MP se não existir provider_plan_id
     const mpPlan = await this.mp.createPlan({
@@ -79,12 +81,16 @@ export class PaymentsService {
         status: 'trialing',
         trialEndsAt,
         periodStart: new Date(),
-        periodEnd: new Date(Date.now() + (plan.billingCycle === 'annual' ? 365 : 30) * 24 * 60 * 60 * 1000),
+        periodEnd: new Date(
+          Date.now() +
+            (plan.billingCycle === 'annual' ? 365 : 30) * 24 * 60 * 60 * 1000,
+        ),
       },
     });
 
     // Se PIX, retornar URL de checkout
-    const checkoutUrl = dto.paymentMethod === 'pix' ? mpSub.init_point : mpSub.init_point;
+    const checkoutUrl =
+      dto.paymentMethod === 'pix' ? mpSub.init_point : mpSub.init_point;
 
     await this.prisma.auditLog.create({
       data: {
@@ -108,7 +114,10 @@ export class PaymentsService {
   } | null> {
     const subscription = await this.prisma.subscription.findFirst({
       where: { userId },
-      include: { plan: true, payments: { orderBy: { createdAt: 'desc' }, take: 1 } },
+      include: {
+        plan: true,
+        payments: { orderBy: { createdAt: 'desc' }, take: 1 },
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -167,16 +176,26 @@ export class PaymentsService {
 
   // ---------- Apply Coupon ----------
 
-  async applyCoupon(userId: string, dto: ApplyCouponDto): Promise<{ discountPercent: number; description: string }> {
+  async applyCoupon(
+    userId: string,
+    dto: ApplyCouponDto,
+  ): Promise<{ discountPercent: number; description: string }> {
     return this.applyCouponLogic(dto.code, userId);
   }
 
-  private async applyCouponLogic(code: string, userId: string): Promise<{ discountPercent: number; description: string }> {
-    const coupon = await this.prisma.coupon.findUnique({ where: { code: code.toUpperCase() } });
+  private async applyCouponLogic(
+    code: string,
+    userId: string,
+  ): Promise<{ discountPercent: number; description: string }> {
+    const coupon = await this.prisma.coupon.findUnique({
+      where: { code: code.toUpperCase() },
+    });
     if (!coupon || !coupon.active) throw new Error('INVALID_COUPON');
 
-    if (coupon.expiresAt && coupon.expiresAt < new Date()) throw new Error('COUPON_EXPIRED');
-    if (coupon.maxUses && coupon.usesCount >= coupon.maxUses) throw new Error('COUPON_LIMIT_REACHED');
+    if (coupon.expiresAt && coupon.expiresAt < new Date())
+      throw new Error('COUPON_EXPIRED');
+    if (coupon.maxUses && coupon.usesCount >= coupon.maxUses)
+      throw new Error('COUPON_LIMIT_REACHED');
 
     // Verificar se já usou (se não é stackable)
     if (!coupon.stackable) {
@@ -188,9 +207,11 @@ export class PaymentsService {
 
     const discountPercent = coupon.type === 'percent' ? coupon.value : 0;
     const description =
-      coupon.type === 'percent' ? `${coupon.value}% de desconto` :
-      coupon.type === 'fixed' ? `R$ ${(coupon.value / 100).toFixed(2)} de desconto` :
-      '1 mês grátis';
+      coupon.type === 'percent'
+        ? `${coupon.value}% de desconto`
+        : coupon.type === 'fixed'
+          ? `R$ ${(coupon.value / 100).toFixed(2)} de desconto`
+          : '1 mês grátis';
 
     return { discountPercent, description };
   }
@@ -217,7 +238,11 @@ export class PaymentsService {
 
   // ---------- Admin: List Subscriptions ----------
 
-  async listSubscriptions(params: { status?: string; page?: number; limit?: number }) {
+  async listSubscriptions(params: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const page = params.page ?? 1;
     const limit = params.limit ?? 20;
     const where = params.status ? { status: params.status as any } : {};
@@ -225,7 +250,10 @@ export class PaymentsService {
     const [items, total] = await Promise.all([
       this.prisma.subscription.findMany({
         where,
-        include: { user: { select: { id: true, name: true, email: true } }, plan: true },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
+          plan: true,
+        },
         skip: (page - 1) * limit,
         take: limit,
         orderBy: { createdAt: 'desc' },

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -31,7 +35,9 @@ export class HackathonsService {
         teams: {
           include: {
             members: {
-              include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+              include: {
+                user: { select: { id: true, name: true, avatarUrl: true } },
+              },
             },
           },
         },
@@ -67,7 +73,9 @@ export class HackathonsService {
   // ---------- Create Team ----------
 
   async createTeam(userId: string, hackathonId: string, name: string) {
-    const hackathon = await this.prisma.hackathon.findUnique({ where: { id: hackathonId } });
+    const hackathon = await this.prisma.hackathon.findUnique({
+      where: { id: hackathonId },
+    });
     if (!hackathon) throw new NotFoundException('Hackathon não encontrado');
     if (hackathon.status !== 'open') throw new Error('HACKATHON_NOT_OPEN');
 
@@ -119,13 +127,19 @@ export class HackathonsService {
 
   // ---------- Submit ----------
 
-  async submit(userId: string, hackathonId: string, data: {
-    title: string;
-    repoUrl?: string;
-    demoUrl?: string;
-    description?: string;
-  }) {
-    const hackathon = await this.prisma.hackathon.findUnique({ where: { id: hackathonId } });
+  async submit(
+    userId: string,
+    hackathonId: string,
+    data: {
+      title: string;
+      repoUrl?: string;
+      demoUrl?: string;
+      description?: string;
+    },
+  ) {
+    const hackathon = await this.prisma.hackathon.findUnique({
+      where: { id: hackathonId },
+    });
     if (!hackathon) throw new NotFoundException('Hackathon não encontrado');
     if (hackathon.status !== 'running' && hackathon.status !== 'open') {
       throw new Error('HACKATHON_NOT_ACCEPTING_SUBMISSIONS');
@@ -151,7 +165,9 @@ export class HackathonsService {
         title: data.title,
         repoUrl: data.repoUrl,
         demoUrl: data.demoUrl,
-        storageKeys: data.description ? { description: data.description } : undefined,
+        storageKeys: data.description
+          ? { description: data.description }
+          : undefined,
         status: 'submitted',
       },
     });
@@ -161,11 +177,15 @@ export class HackathonsService {
 
   // ---------- Score ----------
 
-  async scoreSubmission(judgeId: string, submissionId: string, data: {
-    criteriaScores: Record<string, number>;
-    totalScore: number;
-    feedbackMd?: string;
-  }) {
+  async scoreSubmission(
+    judgeId: string,
+    submissionId: string,
+    data: {
+      criteriaScores: Record<string, number>;
+      totalScore: number;
+      feedbackMd?: string;
+    },
+  ) {
     // Verificar se é judge
     const submission = await this.prisma.hackathonSubmission.findUnique({
       where: { id: submissionId },
@@ -243,7 +263,9 @@ export class HackathonsService {
         rulesMd: data.rulesMd,
         startAt: data.startAt ? new Date(data.startAt) : undefined,
         endAt: data.endAt ? new Date(data.endAt) : undefined,
-        submissionDeadline: data.submissionDeadline ? new Date(data.submissionDeadline) : undefined,
+        submissionDeadline: data.submissionDeadline
+          ? new Date(data.submissionDeadline)
+          : undefined,
         prizePoolCents: data.prizePoolCents ?? 0,
         maxTeamSize: data.maxTeamSize ?? 4,
         xpMultiplier: data.xpMultiplier ?? 1,

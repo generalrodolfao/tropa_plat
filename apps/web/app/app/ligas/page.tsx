@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -55,11 +55,7 @@ export default function LigasPage() {
   const [summary, setSummary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadData()
-  }, [])
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       const [leagueData, summaryData] = await Promise.allSettled([
         ligasApi.getLeague(),
@@ -77,7 +73,11 @@ export default function LigasPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   const xp = summary?.totalXp ?? 0
   const { current, next, progress } = currentRank(xp)

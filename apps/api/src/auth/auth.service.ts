@@ -51,7 +51,9 @@ export class AuthService {
     const exists = await this.prisma.user.findUnique({ where: { email } });
     if (exists) throw new Error('EMAIL_IN_USE');
 
-    const passwordHash = await argon2.hash(dto.password, { type: argon2.argon2id });
+    const passwordHash = await argon2.hash(dto.password, {
+      type: argon2.argon2id,
+    });
 
     const user = await this.prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
@@ -71,7 +73,9 @@ export class AuthService {
         },
         include: { profile: true },
       });
-      await tx.userRole.create({ data: { userId: created.id, role: 'student' } });
+      await tx.userRole.create({
+        data: { userId: created.id, role: 'student' },
+      });
       await tx.auditLog.create({
         data: {
           actorUserId: created.id,
@@ -98,7 +102,8 @@ export class AuthService {
     });
     if (!user) throw new Error('INVALID_CREDENTIALS');
     if (user.status === 'suspended') throw new Error('ACCOUNT_SUSPENDED');
-    if (user.status === 'deleted' || user.deletedAt) throw new Error('ACCOUNT_DELETED');
+    if (user.status === 'deleted' || user.deletedAt)
+      throw new Error('ACCOUNT_DELETED');
     if (user.status !== 'active') throw new Error('INVALID_CREDENTIALS');
 
     const valid = await argon2.verify(user.passwordHash, dto.password);
@@ -187,9 +192,11 @@ export class AuthService {
     if (dto.headline !== undefined) profileData.headline = dto.headline;
     if (dto.bio !== undefined) profileData.bio = dto.bio;
     if (dto.timezone !== undefined) profileData.timezone = dto.timezone;
-    if (dto.linkedinUrl !== undefined) profileData.linkedinUrl = dto.linkedinUrl;
+    if (dto.linkedinUrl !== undefined)
+      profileData.linkedinUrl = dto.linkedinUrl;
     if (dto.githubUrl !== undefined) profileData.githubUrl = dto.githubUrl;
-    if (dto.learningStyle !== undefined) profileData.learningStyle = dto.learningStyle;
+    if (dto.learningStyle !== undefined)
+      profileData.learningStyle = dto.learningStyle;
     if (dto.careerGoal !== undefined) profileData.careerGoal = dto.careerGoal;
 
     if (Object.keys(profileData).length > 0) {
@@ -220,8 +227,13 @@ export class AuthService {
     if (!user) throw new Error('USER_NOT_FOUND');
     const valid = await argon2.verify(user.passwordHash, dto.currentPassword);
     if (!valid) throw new Error('INVALID_CREDENTIALS');
-    const newHash = await argon2.hash(dto.newPassword, { type: argon2.argon2id });
-    await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: newHash } });
+    const newHash = await argon2.hash(dto.newPassword, {
+      type: argon2.argon2id,
+    });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: newHash },
+    });
     // revoga todas sessões exceto a atual? Por segurança revoga todas
     await this.prisma.session.updateMany({
       where: { userId, revokedAt: null },
@@ -239,7 +251,9 @@ export class AuthService {
 
   // ---------- Forgot / Reset ----------
 
-  async forgotPassword(dto: ForgotPasswordDto): Promise<{ resetToken?: string }> {
+  async forgotPassword(
+    dto: ForgotPasswordDto,
+  ): Promise<{ resetToken?: string }> {
     const email = dto.email.toLowerCase().trim();
     const user = await this.prisma.user.findUnique({ where: { email } });
     // sempre retorna ok para não enumerar usuários
@@ -253,10 +267,13 @@ export class AuthService {
       data: { userId: user.id, tokenHash, expiresAt },
     });
 
-    this.logger.log(`Password reset token for ${email}: ${rawToken} (expires ${expiresAt.toISOString()})`);
+    this.logger.log(
+      `Password reset token for ${email}: ${rawToken} (expires ${expiresAt.toISOString()})`,
+    );
 
     // em dev, retorna token para facilitar testes; em prod, enviar por email
-    const isDev = (this.config.get<string>('NODE_ENV') ?? 'development') !== 'production';
+    const isDev =
+      (this.config.get<string>('NODE_ENV') ?? 'development') !== 'production';
     return isDev ? { resetToken: rawToken } : {};
   }
 
@@ -276,17 +293,28 @@ export class AuthService {
     }
     if (!matched) throw new Error('INVALID_RESET_TOKEN');
 
-    const newHash = await argon2.hash(dto.newPassword, { type: argon2.argon2id });
+    const newHash = await argon2.hash(dto.newPassword, {
+      type: argon2.argon2id,
+    });
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: matched!.userId }, data: { passwordHash: newHash } });
-      await tx.passwordResetToken.update({ where: { id: matched!.id }, data: { usedAt: new Date() } });
-      await tx.session.updateMany({ where: { userId: matched!.userId, revokedAt: null }, data: { revokedAt: new Date() } });
+      await tx.user.update({
+        where: { id: matched.userId },
+        data: { passwordHash: newHash },
+      });
+      await tx.passwordResetToken.update({
+        where: { id: matched.id },
+        data: { usedAt: new Date() },
+      });
+      await tx.session.updateMany({
+        where: { userId: matched.userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
       await tx.auditLog.create({
         data: {
-          actorUserId: matched!.userId,
+          actorUserId: matched.userId,
           action: 'user.reset_password',
           resourceType: 'user',
-          resourceId: matched!.userId,
+          resourceId: matched.userId,
         },
       });
     });
@@ -301,11 +329,13 @@ export class AuthService {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwt.signAsync(payload, {
         secret: this.config.getOrThrow<string>('JWT_ACCESS_SECRET'),
-        expiresIn: (this.config.get<string>('JWT_ACCESS_TTL') ?? '15m') as never,
+        expiresIn: (this.config.get<string>('JWT_ACCESS_TTL') ??
+          '15m') as never,
       }),
       this.jwt.signAsync(payload, {
         secret: this.config.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        expiresIn: (this.config.get<string>('JWT_REFRESH_TTL') ?? '30d') as never,
+        expiresIn: (this.config.get<string>('JWT_REFRESH_TTL') ??
+          '30d') as never,
       }),
     ]);
 
@@ -313,7 +343,9 @@ export class AuthService {
       data: {
         userId,
         refreshTokenHash: await this.hash(refreshToken),
-        expiresAt: this.expiryDate(this.config.get<string>('JWT_REFRESH_TTL') ?? '30d'),
+        expiresAt: this.expiryDate(
+          this.config.get<string>('JWT_REFRESH_TTL') ?? '30d',
+        ),
       },
     });
 
@@ -331,7 +363,11 @@ export class AuthService {
     const n = Number(m[1]);
     const unit = m[2];
     const ms =
-      unit === 'm' ? n * 60 * 1000 : unit === 'h' ? n * 60 * 60 * 1000 : n * 24 * 60 * 60 * 1000;
+      unit === 'm'
+        ? n * 60 * 1000
+        : unit === 'h'
+          ? n * 60 * 60 * 1000
+          : n * 24 * 60 * 60 * 1000;
     return new Date(Date.now() + ms);
   }
 

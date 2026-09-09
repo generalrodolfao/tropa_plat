@@ -8,7 +8,12 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TrailsService } from './trails.service';
@@ -45,7 +50,13 @@ export class TrailsController {
   @ApiResponse({ status: 201, description: 'Trilha criada' })
   async create(
     @CurrentUser() user: { userId: string },
-    @Body() createDto: { name: string; description: string; courseId: string; difficulty?: string },
+    @Body()
+    createDto: {
+      name: string;
+      description: string;
+      courseId: string;
+      difficulty?: string;
+    },
   ) {
     return this.trails.create(
       user.userId,
@@ -64,7 +75,11 @@ export class TrailsController {
     @Param('trailId') trailId: string,
     @Body() body: { completedLessonIds: string[] },
   ) {
-    return this.trails.updateProgress(user.userId, trailId, body.completedLessonIds ?? []);
+    return this.trails.updateProgress(
+      user.userId,
+      trailId,
+      body.completedLessonIds ?? [],
+    );
   }
 
   @Delete(':trailId')

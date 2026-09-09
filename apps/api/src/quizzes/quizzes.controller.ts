@@ -10,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { QuizzesService } from './quizzes.service';
-import { CreateQuizDto, CreateQuestionDto, SubmitAttemptDto } from './dto/quizzes.dto';
+import {
+  CreateQuizDto,
+  CreateQuestionDto,
+  SubmitAttemptDto,
+} from './dto/quizzes.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -66,9 +70,7 @@ export class QuizzesController {
   @Roles('admin')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Listar todos os quizzes (admin)' })
-  async listQuizzes(
-    @CurrentUser() user: { userId: string },
-  ) {
+  async listQuizzes(@CurrentUser() user: { userId: string }) {
     return this.quizzesService.listQuizzes({});
   }
 

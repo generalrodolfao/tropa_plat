@@ -6,9 +6,10 @@ import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Play, Terminal, Brain, Swords, ChevronLeft, CheckCircle2, Bookmark, Captions, Clock, FileText, ChevronRight } from "lucide-react"
+import { Play, Brain, Swords, ChevronLeft, CheckCircle2, Bookmark, Captions, Clock, FileText, ChevronRight } from "lucide-react"
 import { progressApi, trailsApi } from "@/lib/api/service"
 import { VideoPlayer } from "@/components/video-player"
+import { SandboxEditor } from "@/components/sandbox/sandbox-editor"
 
 export default function LessonPage() {
   const params = useParams<{ slug: string; lesson: string }>()
@@ -239,7 +240,15 @@ function LessonContent({ type, title, hasVideo, videoData, content, onProgress, 
   onProgress?: (seconds: number) => void
   onEnded?: () => void
 }) {
-  if (type === "sandbox") return <SandboxMock title={title} />
+  if (type === "sandbox") {
+    return (
+      <SandboxEditor
+        engine={content?.engine === "python" ? "python" : "sql"}
+        datasetUrl={content?.datasetUrl}
+        datasetName={content?.datasetName}
+      />
+    )
+  }
   if (type === "quiz") return <QuizMock />
   if (type === "project") return <ProjectMock />
   if (type === "article") return <ArticleMock title={title} />
@@ -291,26 +300,6 @@ function VideoMock({ title }: { title: string }) {
         <p className="text-sm leading-relaxed text-muted-foreground">
           Vídeo ainda não disponível. Faça upload do vídeo no painel admin para habilitar o player.
         </p>
-      </CardContent>
-    </Card>
-  )
-}
-
-function SandboxMock({ title }: { title: string }) {
-  return (
-    <Card className="hud-corners overflow-hidden border-border/70 bg-card/70">
-      <div className="flex items-center justify-between border-b border-border/60 bg-muted/40 px-4 py-2.5">
-        <div className="flex items-center gap-2">
-          <Terminal className="size-4 text-accent" />
-          <span className="font-mono text-xs font-semibold text-foreground">{title} — DuckDB-WASM</span>
-        </div>
-        <Badge variant="secondary" className="px-2 py-0 font-mono text-[10px]">roda no navegador</Badge>
-      </div>
-      <CardContent className="p-5 font-mono text-sm">
-        <p className="text-muted-foreground">Sandbox no browser — datasets via R2/CDN, execução WASM. Na entrega real, o botão &ldquo;Concluir&rdquo; valida via servidor (hidden tests).</p>
-        <div className="mt-4 rounded-lg border border-border/60 bg-background/60 p-3">
-          <pre className="overflow-x-auto text-xs">SELECT * FROM vendas WHERE estado = 'SP' LIMIT 5;</pre>
-        </div>
       </CardContent>
     </Card>
   )

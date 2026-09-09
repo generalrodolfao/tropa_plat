@@ -18,7 +18,10 @@ export interface MPCardToken {
   last_four_digits: string;
   expiration_month: number;
   expiration_year: number;
-  cardholder: { name: string; identification: { type: string; number: string } };
+  cardholder: {
+    name: string;
+    identification: { type: string; number: string };
+  };
 }
 
 export interface MPSubscription {
@@ -69,7 +72,11 @@ export class MercadoPagoAdapter {
     };
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     this.logger.debug(`MP ${method} ${url}`);
 
@@ -152,17 +159,28 @@ export class MercadoPagoAdapter {
       (body as any).payment_method_id = data.paymentMethodId;
     }
 
-    return this.request<MPSubscription>('POST', `/preapproval/${data.planId}`, body);
+    return this.request<MPSubscription>(
+      'POST',
+      `/preapproval/${data.planId}`,
+      body,
+    );
   }
 
   async getSubscription(subscriptionId: string): Promise<MPSubscription> {
-    return this.request<MPSubscription>('GET', `/preapproval/${subscriptionId}`);
+    return this.request<MPSubscription>(
+      'GET',
+      `/preapproval/${subscriptionId}`,
+    );
   }
 
   async cancelSubscription(subscriptionId: string): Promise<MPSubscription> {
-    return this.request<MPSubscription>('PUT', `/preapproval/${subscriptionId}`, {
-      status: 'cancelled',
-    });
+    return this.request<MPSubscription>(
+      'PUT',
+      `/preapproval/${subscriptionId}`,
+      {
+        status: 'cancelled',
+      },
+    );
   }
 
   // ---------- Payments ----------

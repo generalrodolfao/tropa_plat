@@ -54,7 +54,9 @@ export class AuthController {
         throw new UnauthorizedException('Credenciais inválidas');
       }
       if (e instanceof Error && e.message === 'ACCOUNT_SUSPENDED') {
-        throw new ForbiddenException('Conta suspensa. Entre em contato com o suporte.');
+        throw new ForbiddenException(
+          'Conta suspensa. Entre em contato com o suporte.',
+        );
       }
       if (e instanceof Error && e.message === 'ACCOUNT_DELETED') {
         throw new ForbiddenException('Conta desativada');
@@ -100,7 +102,8 @@ export class AuthController {
     try {
       return await this.auth.me(user.userId);
     } catch (e) {
-      if (e instanceof Error && e.message === 'USER_NOT_FOUND') throw new NotFoundException('Usuário não encontrado');
+      if (e instanceof Error && e.message === 'USER_NOT_FOUND')
+        throw new NotFoundException('Usuário não encontrado');
       throw e;
     }
   }
@@ -109,7 +112,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Atualizar perfil do usuário autenticado' })
-  async updateMe(@CurrentUser() user: { userId: string }, @Body() dto: UpdateMeDto) {
+  async updateMe(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: UpdateMeDto,
+  ) {
     return this.auth.updateMe(user.userId, dto);
   }
 
@@ -117,7 +123,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Trocar senha (requer senha atual)' })
-  async changePassword(@CurrentUser() user: { userId: string }, @Body() dto: ChangePasswordDto) {
+  async changePassword(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: ChangePasswordDto,
+  ) {
     try {
       await this.auth.changePassword(user.userId, dto);
       return { ok: true };

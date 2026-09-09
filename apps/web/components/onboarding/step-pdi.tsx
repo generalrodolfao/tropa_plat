@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { API_BASE, getAuthHeaders } from "@/lib/api/client"
@@ -27,16 +27,9 @@ interface StepPDIProps {
 
 export function StepPDI({ data, onUpdate }: StepPDIProps) {
   const [pdi, setPdi] = useState<StepPDIData | null>(data.pdi || null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(!data.pdi)
 
-  useEffect(() => {
-    if (!pdi) {
-      generatePDI()
-    }
-  }, [])
-
-  const generatePDI = async () => {
-    setLoading(true)
+  const generatePDI = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/v1/ai/pdi/generate`, {
         method: "POST",
@@ -64,7 +57,13 @@ export function StepPDI({ data, onUpdate }: StepPDIProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [data, onUpdate])
+
+  useEffect(() => {
+    if (!pdi) {
+      generatePDI()
+    }
+  }, [generatePDI, pdi])
 
   if (loading) {
     return (

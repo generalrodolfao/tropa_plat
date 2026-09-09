@@ -27,6 +27,17 @@ export function VideoPlayer({ hlsUrl, mp4Url, poster, title, onProgress, onEnded
   const [error, setError] = useState<string | null>(null)
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
+  const sourceKey = `${hlsUrl ?? ""}|${mp4Url ?? ""}`
+  const [prevSource, setPrevSource] = useState(sourceKey)
+  if (prevSource !== sourceKey) {
+    setPrevSource(sourceKey)
+    if (!hlsUrl && !mp4Url) {
+      setError("Nenhuma URL de vídeo disponível")
+    } else {
+      setError(null)
+    }
+  }
+
   const destroyHls = useCallback(() => {
     if (hlsRef.current) {
       hlsRef.current.destroy()
@@ -39,7 +50,6 @@ export function VideoPlayer({ hlsUrl, mp4Url, poster, title, onProgress, onEnded
     if (!video) return
 
     destroyHls()
-    setError(null)
 
     if (hlsUrl && Hls.isSupported()) {
       const hls = new Hls({
@@ -78,8 +88,6 @@ export function VideoPlayer({ hlsUrl, mp4Url, poster, title, onProgress, onEnded
     } else if (hlsUrl) {
       // Last resort: try direct HLS URL
       video.src = hlsUrl
-    } else {
-      setError("Nenhuma URL de vídeo disponível")
     }
 
     const onTimeUpdate = () => {

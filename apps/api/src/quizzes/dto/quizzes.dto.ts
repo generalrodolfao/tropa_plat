@@ -1,5 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsUUID, IsNumber, IsArray, ValidateNested, Min, Max, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsUUID,
+  IsNumber,
+  IsArray,
+  ValidateNested,
+  Min,
+  Max,
+  IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateQuizDto {
@@ -37,7 +47,14 @@ export class CreateQuestionDto {
   @IsString()
   prompt: string;
 
-  @ApiProperty({ example: ['Uma linha', 'Uma coluna', 'Uma estrutura de dados', 'Um banco de dados'] })
+  @ApiProperty({
+    example: [
+      'Uma linha',
+      'Uma coluna',
+      'Uma estrutura de dados',
+      'Um banco de dados',
+    ],
+  })
   @IsArray()
   options: string[];
 

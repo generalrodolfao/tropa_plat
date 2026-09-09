@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -29,11 +29,7 @@ export default function VagasPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
 
-  useEffect(() => {
-    loadVagas()
-  }, [])
-
-  async function loadVagas() {
+  const loadVagas = useCallback(async () => {
     try {
       const data = await vagasApi.list()
       setVagas(Array.isArray(data) ? data : [])
@@ -42,7 +38,11 @@ export default function VagasPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadVagas()
+  }, [loadVagas])
 
   const filteredVagas = vagas.filter((v) => {
     if (!search) return true

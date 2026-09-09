@@ -10,7 +10,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { VideoService } from './video.service';
-import { RequestUploadDto, VideoWebhookDto, CreateTranscriptDto } from './dto/video.dto';
+import {
+  RequestUploadDto,
+  VideoWebhookDto,
+  CreateTranscriptDto,
+} from './dto/video.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
@@ -60,7 +64,10 @@ export class VideoController {
     if (body.status === 'ready') {
       await this.videoService.handleVideoReady(body.uid, body);
     } else if (body.status === 'error') {
-      await this.videoService.handleVideoError(body.uid, body.error ?? 'unknown');
+      await this.videoService.handleVideoError(
+        body.uid,
+        body.error ?? 'unknown',
+      );
     }
 
     return { ok: true };

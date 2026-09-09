@@ -8,7 +8,12 @@ import {
   UseGuards,
   HttpCode,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { CertificatesService } from './certificates.service';
 import { IssueCertificateDto } from './dto/certificates.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -33,9 +38,7 @@ export class CertificatesController {
 
   @Get('verify/:serial')
   @ApiOperation({ summary: 'Verificar autenticidade do certificado' })
-  async verifyCertificate(
-    @Param('serial') serial: string,
-  ) {
+  async verifyCertificate(@Param('serial') serial: string) {
     return this.certificatesService.verifyCertificate(serial);
   }
 
@@ -64,6 +67,9 @@ export class CertificatesController {
     @CurrentUser() user: { userId: string },
     @Param('certificateId') certificateId: string,
   ) {
-    return this.certificatesService.revokeCertificate(user.userId, certificateId);
+    return this.certificatesService.revokeCertificate(
+      user.userId,
+      certificateId,
+    );
   }
 }

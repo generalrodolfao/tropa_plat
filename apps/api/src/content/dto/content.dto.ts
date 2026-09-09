@@ -35,7 +35,7 @@ export class CreateModuleDto {
 
   @ApiPropertyOptional({ example: 'watch' })
   @IsOptional()
-  @IsEnum(['watch', 'do', 'play'] as any)
+  @IsEnum(['watch', 'do', 'play'])
   type?: string;
 }
 
@@ -45,7 +45,7 @@ export class CreateLessonDto {
   title: string;
 
   @ApiProperty({ example: 'video' })
-  @IsEnum(['video', 'article', 'sandbox', 'quiz', 'project', 'challenge'] as any)
+  @IsEnum(['video', 'article', 'sandbox', 'quiz', 'project', 'challenge'])
   type: string;
 
   @ApiPropertyOptional({ example: 900 })

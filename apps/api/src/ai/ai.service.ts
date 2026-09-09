@@ -1,14 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { LLMAdapter } from './llm.adapter';
-import { CvParseDto, CvReviewDto, GeneratePdiDto, GenerateQuizItemsDto } from './dto/ai.dto';
+import {
+  CvParseDto,
+  CvReviewDto,
+  GeneratePdiDto,
+  GenerateQuizItemsDto,
+} from './dto/ai.dto';
 import { createHash } from 'crypto';
 
 @Injectable()
 export class AIService {
   private readonly logger = new Logger(AIService.name);
-  private readonly cache = new Map<string, { data: any; expiresAt: number }>()
-  private readonly cacheTtlMs = 60 * 60 * 1000 // 1 hour
+  private readonly cache = new Map<string, { data: any; expiresAt: number }>();
+  private readonly cacheTtlMs = 60 * 60 * 1000; // 1 hour
 
   constructor(
     private readonly prisma: PrismaService,
@@ -24,41 +29,46 @@ export class AIService {
       .replace(/\b\d{11}\b/g, '[REDACTED_CPF]')
       .replace(/\b[\w.-]+@[\w.-]+\.\w+\b/g, '[REDACTED_EMAIL]')
       .replace(/\b\(\d{2}\)\s?\d{4,5}-\d{4}\b/g, '[REDACTED_PHONE]')
-      .replace(/\b\d{5}-\d{3}\b/g, '[REDACTED_CEP]')
+      .replace(/\b\d{5}-\d{3}\b/g, '[REDACTED_CEP]');
   }
 
   private getCacheKey(prefix: string, data: string): string {
-    return `${prefix}:${createHash('sha256').update(data).digest('hex').slice(0, 16)}`
+    return `${prefix}:${createHash('sha256').update(data).digest('hex').slice(0, 16)}`;
   }
 
   private getFromCache<T>(key: string): T | null {
-    const cached = this.cache.get(key)
+    const cached = this.cache.get(key);
     if (!cached || cached.expiresAt < Date.now()) {
-      this.cache.delete(key)
-      return null
+      this.cache.delete(key);
+      return null;
     }
-    return cached.data as T
+    return cached.data as T;
   }
 
   private setCache(key: string, data: any): void {
-    this.cache.set(key, { data, expiresAt: Date.now() + this.cacheTtlMs })
+    this.cache.set(key, { data, expiresAt: Date.now() + this.cacheTtlMs });
   }
 
   // ---------- CV Parse ----------
 
   async parseCV(dto: CvParseDto): Promise<{
-    name: string
-    email: string
-    skills: Array<{ name: string; level: number; confidence: number }>
-    experience: Array<{ role: string; company: string; duration: string; description: string }>
-    education: Array<{ degree: string; institution: string; year: string }>
-    summary: string
+    name: string;
+    email: string;
+    skills: Array<{ name: string; level: number; confidence: number }>;
+    experience: Array<{
+      role: string;
+      company: string;
+      duration: string;
+      description: string;
+    }>;
+    education: Array<{ degree: string; institution: string; year: string }>;
+    summary: string;
   }> {
-    const cacheKey = this.getCacheKey('cv_parse', dto.text)
-    const cached = this.getFromCache<any>(cacheKey)
-    if (cached) return cached
+    const cacheKey = this.getCacheKey('cv_parse', dto.text);
+    const cached = this.getFromCache<any>(cacheKey);
+    if (cached) return cached;
 
-    const redactedText = this.redactPII(dto.text)
+    const redactedText = this.redactPII(dto.text);
 
     const schema = {
       type: 'object',
@@ -104,8 +114,15 @@ export class AIService {
         },
         summary: { type: 'string' },
       },
-      required: ['name', 'email', 'skills', 'experience', 'education', 'summary'],
-    }
+      required: [
+        'name',
+        'email',
+        'skills',
+        'experience',
+        'education',
+        'summary',
+      ],
+    };
 
     const result = await this.llm.structuredOutput<any>(
       [
@@ -137,27 +154,30 @@ Foque em skills de dados: SQL, Python, R, Excel, Power BI, Tableau, Estatística
       ],
       schema,
       'gpt-4o-mini',
-    )
+    );
 
-    this.setCache(cacheKey, result)
-    return result as any
+    this.setCache(cacheKey, result);
+    return result;
   }
 
   // ---------- CV Review ----------
 
   async reviewCV(dto: CvReviewDto): Promise<{
-    overallScore: number
-    summary: string
-    sections: Array<{ title: string; score: number; feedback: string }>
-    atsScore: number
-    strengths: string[]
-    improvements: string[]
+    overallScore: number;
+    summary: string;
+    sections: Array<{ title: string; score: number; feedback: string }>;
+    atsScore: number;
+    strengths: string[];
+    improvements: string[];
   }> {
-    const cacheKey = this.getCacheKey('cv_review', dto.cvText + (dto.targetRole ?? ''))
-    const cached = this.getFromCache<any>(cacheKey)
-    if (cached) return cached
+    const cacheKey = this.getCacheKey(
+      'cv_review',
+      dto.cvText + (dto.targetRole ?? ''),
+    );
+    const cached = this.getFromCache<any>(cacheKey);
+    if (cached) return cached;
 
-    const redactedText = this.redactPII(dto.cvText)
+    const redactedText = this.redactPII(dto.cvText);
 
     const schema = {
       type: 'object',
@@ -180,10 +200,17 @@ Foque em skills de dados: SQL, Python, R, Excel, Power BI, Tableau, Estatística
         strengths: { type: 'array', items: { type: 'string' } },
         improvements: { type: 'array', items: { type: 'string' } },
       },
-      required: ['overallScore', 'summary', 'sections', 'atsScore', 'strengths', 'improvements'],
-    }
+      required: [
+        'overallScore',
+        'summary',
+        'sections',
+        'atsScore',
+        'strengths',
+        'improvements',
+      ],
+    };
 
-    const targetRole = dto.targetRole ?? 'Profissional de Dados'
+    const targetRole = dto.targetRole ?? 'Profissional de Dados';
 
     const result = await this.llm.structuredOutput<any>(
       [
@@ -208,27 +235,30 @@ Seja específico e prático nas sugestões.`,
       ],
       schema,
       'gpt-4o-mini',
-    )
+    );
 
-    this.setCache(cacheKey, result)
-    return result as any
+    this.setCache(cacheKey, result);
+    return result;
   }
 
   // ---------- Generate PDI ----------
 
   async generatePDI(dto: GeneratePdiDto): Promise<{
     milestones: Array<{
-      title: string
-      description: string
-      skills: string[]
-      estimatedWeeks: number
-      courses: Array<{ title: string; reason: string }>
-      projects: Array<{ title: string; description: string }>
-    }>
-    totalWeeks: number
-    weeklyHours: number
+      title: string;
+      description: string;
+      skills: string[];
+      estimatedWeeks: number;
+      courses: Array<{ title: string; reason: string }>;
+      projects: Array<{ title: string; description: string }>;
+    }>;
+    totalWeeks: number;
+    weeklyHours: number;
   }> {
-    const skills = JSON.parse(dto.currentSkills) as Array<{ skillId: string; level: number }>
+    const skills = JSON.parse(dto.currentSkills) as Array<{
+      skillId: string;
+      level: number;
+    }>;
 
     const schema = {
       type: 'object',
@@ -265,16 +295,25 @@ Seja específico e prático nas sugestões.`,
                 },
               },
             },
-            required: ['title', 'description', 'skills', 'estimatedWeeks', 'courses', 'projects'],
+            required: [
+              'title',
+              'description',
+              'skills',
+              'estimatedWeeks',
+              'courses',
+              'projects',
+            ],
           },
         },
         totalWeeks: { type: 'number' },
         weeklyHours: { type: 'number' },
       },
       required: ['milestones', 'totalWeeks', 'weeklyHours'],
-    }
+    };
 
-    const skillsText = skills.map((s) => `- Skill ${s.skillId}: nível ${s.level}/5`).join('\n')
+    const skillsText = skills
+      .map((s) => `- Skill ${s.skillId}: nível ${s.level}/5`)
+      .join('\n');
 
     const result = await this.llm.structuredOutput<any>(
       [
@@ -306,20 +345,22 @@ Seja realista com o tempo disponível.`,
       ],
       schema,
       'gpt-4o',
-    )
+    );
 
-    return result as any
+    return result;
   }
 
   // ---------- Generate Quiz Items ----------
 
-  async generateQuizItems(dto: GenerateQuizItemsDto): Promise<Array<{
-    prompt: string
-    options: string[]
-    correctIndex: number
-    difficulty: number
-    explanation: string
-  }>> {
+  async generateQuizItems(dto: GenerateQuizItemsDto): Promise<
+    Array<{
+      prompt: string;
+      options: string[];
+      correctIndex: number;
+      difficulty: number;
+      explanation: string;
+    }>
+  > {
     const schema = {
       type: 'object',
       properties: {
@@ -329,17 +370,28 @@ Seja realista com o tempo disponível.`,
             type: 'object',
             properties: {
               prompt: { type: 'string' },
-              options: { type: 'array', items: { type: 'string' }, minItems: 4, maxItems: 4 },
+              options: {
+                type: 'array',
+                items: { type: 'string' },
+                minItems: 4,
+                maxItems: 4,
+              },
               correctIndex: { type: 'number', minimum: 0, maximum: 3 },
               difficulty: { type: 'number', minimum: 1, maximum: 5 },
               explanation: { type: 'string' },
             },
-            required: ['prompt', 'options', 'correctIndex', 'difficulty', 'explanation'],
+            required: [
+              'prompt',
+              'options',
+              'correctIndex',
+              'difficulty',
+              'explanation',
+            ],
           },
         },
       },
       required: ['items'],
-    }
+    };
 
     const result = await this.llm.structuredOutput(
       [
@@ -357,8 +409,8 @@ Inclua explicação para cada resposta.`,
       ],
       schema,
       'gpt-4o-mini',
-    )
+    );
 
-    return (result as any).items ?? []
+    return (result as any).items ?? [];
   }
 }

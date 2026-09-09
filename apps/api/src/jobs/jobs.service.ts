@@ -9,9 +9,7 @@ export class JobsService {
     const where: any = { status: 'open' };
 
     if (filters?.search) {
-      where.OR = [
-        { title: { contains: filters.search, mode: 'insensitive' } },
-      ];
+      where.OR = [{ title: { contains: filters.search, mode: 'insensitive' } }];
     }
 
     const [jobs, applications, userSkills] = await Promise.all([
@@ -30,7 +28,9 @@ export class JobsService {
       }),
     ]);
 
-    const skillMap = new Map(userSkills.map((s) => [s.skill.name.toLowerCase(), s.level]));
+    const skillMap = new Map(
+      userSkills.map((s) => [s.skill.name.toLowerCase(), s.level]),
+    );
     const applied = new Map(applications.map((a) => [a.jobId, a]));
 
     return jobs
@@ -54,9 +54,8 @@ export class JobsService {
           }
         }
 
-        const fitScore = totalWeight > 0
-          ? Math.round((matchedWeight / totalWeight) * 100)
-          : 0;
+        const fitScore =
+          totalWeight > 0 ? Math.round((matchedWeight / totalWeight) * 100) : 0;
 
         const app = applied.get(job.id);
 
@@ -123,7 +122,9 @@ export class JobsService {
       throw new NotFoundException('Vaga não encontrada');
     }
 
-    const skillMap = new Map(userSkills.map((s) => [s.skill.name.toLowerCase(), s.level]));
+    const skillMap = new Map(
+      userSkills.map((s) => [s.skill.name.toLowerCase(), s.level]),
+    );
     const reqSkills = Array.isArray(job.skills)
       ? (job.skills as { name: string; level: number }[])
       : [];
@@ -143,9 +144,8 @@ export class JobsService {
       }
     }
 
-    const fitScore = totalWeight > 0
-      ? Math.round((matchedWeight / totalWeight) * 100)
-      : 0;
+    const fitScore =
+      totalWeight > 0 ? Math.round((matchedWeight / totalWeight) * 100) : 0;
 
     // Create application
     const application = await this.prisma.jobApplication.create({

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { EngagementReportDto } from './dto/b2b.dto';
 
@@ -41,26 +45,29 @@ export class B2BService {
     // Get engagement metrics
     const memberIds = members.map((m) => m.userId);
 
-    const [progressCount, quizAttempts, projectSubmissions] = await Promise.all([
-      this.prisma.lessonProgress.count({
-        where: {
-          userId: { in: memberIds },
-          completedAt: { not: null },
-        },
-      }),
-      this.prisma.quizAttempt.count({
-        where: { userId: { in: memberIds } },
-      }),
-      this.prisma.projectSubmission.count({
-        where: { userId: { in: memberIds } },
-      }),
-    ]);
+    const [progressCount, quizAttempts, projectSubmissions] = await Promise.all(
+      [
+        this.prisma.lessonProgress.count({
+          where: {
+            userId: { in: memberIds },
+            completedAt: { not: null },
+          },
+        }),
+        this.prisma.quizAttempt.count({
+          where: { userId: { in: memberIds } },
+        }),
+        this.prisma.projectSubmission.count({
+          where: { userId: { in: memberIds } },
+        }),
+      ],
+    );
 
     // Calculate average progress
     const totalLessons = await this.prisma.lesson.count();
-    const avgProgress = totalLessons > 0
-      ? Math.round((progressCount / (members.length * totalLessons)) * 100)
-      : 0;
+    const avgProgress =
+      totalLessons > 0
+        ? Math.round((progressCount / (members.length * totalLessons)) * 100)
+        : 0;
 
     return {
       organization: {
@@ -112,31 +119,32 @@ export class B2BService {
       throw new NotFoundException('Membro não encontrado');
     }
 
-    const [skillScores, lessonProgress, quizAttempts, projectSubmissions] = await Promise.all([
-      this.prisma.skillScore.findMany({
-        where: { userId: memberId },
-        include: { skill: true },
-      }),
-      this.prisma.lessonProgress.findMany({
-        where: { userId: memberId, completedAt: { not: null } },
-        include: {
-          lesson: {
-            select: { title: true, module: { select: { title: true } } },
+    const [skillScores, lessonProgress, quizAttempts, projectSubmissions] =
+      await Promise.all([
+        this.prisma.skillScore.findMany({
+          where: { userId: memberId },
+          include: { skill: true },
+        }),
+        this.prisma.lessonProgress.findMany({
+          where: { userId: memberId, completedAt: { not: null } },
+          include: {
+            lesson: {
+              select: { title: true, module: { select: { title: true } } },
+            },
           },
-        },
-      }),
-      this.prisma.quizAttempt.findMany({
-        where: { userId: memberId },
-        orderBy: { startedAt: 'desc' },
-        take: 10,
-      }),
-      this.prisma.projectSubmission.findMany({
-        where: { userId: memberId },
-        include: { project: { select: { title: true } } },
-        orderBy: { submittedAt: 'desc' },
-        take: 5,
-      }),
-    ]);
+        }),
+        this.prisma.quizAttempt.findMany({
+          where: { userId: memberId },
+          orderBy: { startedAt: 'desc' },
+          take: 10,
+        }),
+        this.prisma.projectSubmission.findMany({
+          where: { userId: memberId },
+          include: { project: { select: { title: true } } },
+          orderBy: { submittedAt: 'desc' },
+          take: 5,
+        }),
+      ]);
 
     return {
       skills: skillScores.map((s) => ({
@@ -205,7 +213,7 @@ export class B2BService {
         lessonsCompleted: lessonProgress.filter((l) => l.userId === id).length,
         quizzesTaken: quizAttempts.filter((q) => q.userId === id).length,
         avgScore: this.average(
-          quizAttempts.filter((q) => q.userId === id).map((q) => q.score)
+          quizAttempts.filter((q) => q.userId === id).map((q) => q.score),
         ),
         xpEarned: xpEvents
           .filter((x) => x.userId === id)
@@ -213,7 +221,7 @@ export class B2BService {
         activeDays: new Set(
           xpEvents
             .filter((x) => x.userId === id)
-            .map((x) => x.createdAt.toISOString().split('T')[0])
+            .map((x) => x.createdAt.toISOString().split('T')[0]),
         ).size,
       };
     }
@@ -224,7 +232,12 @@ export class B2BService {
         totalLessonsCompleted: lessonProgress.length,
         totalQuizzesTaken: quizAttempts.length,
         totalXpEarned: xpEvents.reduce((sum, x) => sum + x.amount, 0),
-        avgEngagementRate: this.calculateEngagementRate(memberIds.length, xpEvents, startDate, endDate),
+        avgEngagementRate: this.calculateEngagementRate(
+          memberIds.length,
+          xpEvents,
+          startDate,
+          endDate,
+        ),
       },
       byUser: Object.values(byUser),
     };
@@ -232,7 +245,10 @@ export class B2BService {
 
   // ---------- Helper methods ----------
 
-  private async getActiveMembers(memberIds: string[], days: number): Promise<number> {
+  private async getActiveMembers(
+    memberIds: string[],
+    days: number,
+  ): Promise<number> {
     const since = new Date();
     since.setDate(since.getDate() - days);
 
@@ -259,7 +275,9 @@ export class B2BService {
     endDate: Date,
   ): number {
     if (totalMembers === 0) return 0;
-    const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    const days = Math.ceil(
+      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24),
+    );
     const activeUsers = new Set(xpEvents.map((x) => x.userId)).size;
     return Math.round((activeUsers / totalMembers) * 100);
   }

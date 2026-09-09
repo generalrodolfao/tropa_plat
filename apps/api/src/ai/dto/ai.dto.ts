@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsEnum, IsNumber, MaxLength, MinLength } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsNumber,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class CvParseDto {
   @ApiProperty({ description: 'Texto extraído do CV (PDF/DOCX)' })

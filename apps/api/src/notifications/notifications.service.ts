@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateNotificationDto, UpdatePreferencesDto } from './dto/notifications.dto';
+import {
+  CreateNotificationDto,
+  UpdatePreferencesDto,
+} from './dto/notifications.dto';
 
 @Injectable()
 export class NotificationsService {
@@ -24,7 +27,9 @@ export class NotificationsService {
 
     // Se preferência está desabilitada, não criar
     if (pref && !pref.enabled) {
-      this.logger.debug(`Notification blocked by preference: ${dto.userId} / ${dto.type}`);
+      this.logger.debug(
+        `Notification blocked by preference: ${dto.userId} / ${dto.type}`,
+      );
       return null;
     }
 
@@ -47,7 +52,10 @@ export class NotificationsService {
 
   // ---------- List Notifications ----------
 
-  async list(userId: string, params?: { limit?: number; unreadOnly?: boolean }) {
+  async list(
+    userId: string,
+    params?: { limit?: number; unreadOnly?: boolean },
+  ) {
     const limit = params?.limit ?? 20;
     const where: any = { userId };
     if (params?.unreadOnly) {
@@ -122,7 +130,9 @@ export class NotificationsService {
     try {
       // Socket.IO será injetado via gateway
       // Por enquanto, apenas log
-      this.logger.debug(`Broadcasting notification to user ${userId}: ${notification.title}`);
+      this.logger.debug(
+        `Broadcasting notification to user ${userId}: ${notification.title}`,
+      );
     } catch (error) {
       this.logger.warn(`Failed to broadcast notification: ${error}`);
     }
@@ -157,7 +167,11 @@ export class NotificationsService {
     });
   }
 
-  async notifyHackathonResult(userId: string, hackathonTitle: string, position: number) {
+  async notifyHackathonResult(
+    userId: string,
+    hackathonTitle: string,
+    position: number,
+  ) {
     return this.create({
       userId,
       type: 'hackathon_result',

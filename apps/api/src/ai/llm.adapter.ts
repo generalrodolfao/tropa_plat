@@ -12,7 +12,11 @@ export interface LLMRequest {
 export interface LLMResponse {
   content: string;
   model: string;
-  usage: { promptTokens: number; completionTokens: number; totalTokens: number };
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
 @Injectable()
@@ -21,7 +25,8 @@ export class LLMAdapter {
   private readonly openaiKey: string;
   private readonly geminiKey: string;
   private readonly openaiBaseUrl = 'https://api.openai.com/v1';
-  private readonly geminiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  private readonly geminiBaseUrl =
+    'https://generativelanguage.googleapis.com/v1beta';
 
   // Circuit breaker
   private failures = 0;
@@ -35,37 +40,37 @@ export class LLMAdapter {
   }
 
   private get isCircuitOpen(): boolean {
-    if (this.failures < this.circuitBreakerThreshold) return false
+    if (this.failures < this.circuitBreakerThreshold) return false;
     if (Date.now() - this.lastFailure > this.circuitBreakerResetMs) {
-      this.failures = 0
-      return false
+      this.failures = 0;
+      return false;
     }
-    return true
+    return true;
   }
 
   private recordFailure(): void {
-    this.failures++
-    this.lastFailure = Date.now()
+    this.failures++;
+    this.lastFailure = Date.now();
   }
 
   private recordSuccess(): void {
-    this.failures = 0
+    this.failures = 0;
   }
 
   // ---------- Primary: OpenAI ----------
 
   async chatOpenAI(request: LLMRequest): Promise<LLMResponse> {
-    if (this.isCircuitOpen) throw new Error('CIRCUIT_BREAKER_OPEN')
+    if (this.isCircuitOpen) throw new Error('CIRCUIT_BREAKER_OPEN');
 
     const body: any = {
       model: request.model,
       messages: request.messages,
       temperature: request.temperature ?? 0.7,
       max_tokens: request.maxTokens ?? 4096,
-    }
+    };
 
     if (request.responseFormat) {
-      body.response_format = request.responseFormat
+      body.response_format = request.responseFormat;
     }
 
     const res = await fetch(`${this.openaiBaseUrl}/chat/completions`, {
@@ -75,16 +80,16 @@ export class LLMAdapter {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
-    })
+    });
 
     if (!res.ok) {
-      this.recordFailure()
-      const error = await res.text()
-      throw new Error(`OPENAI_ERROR_${res.status}: ${error}`)
+      this.recordFailure();
+      const error = await res.text();
+      throw new Error(`OPENAI_ERROR_${res.status}: ${error}`);
     }
 
-    this.recordSuccess()
-    const json = await res.json()
+    this.recordSuccess();
+    const json = await res.json();
     return {
       content: json.choices[0].message.content,
       model: json.model,
@@ -93,14 +98,14 @@ export class LLMAdapter {
         completionTokens: json.usage.completion_tokens,
         totalTokens: json.usage.total_tokens,
       },
-    }
+    };
   }
 
   // ---------- Fallback: Gemini ----------
 
   async chatGemini(request: LLMRequest): Promise<LLMResponse> {
-    const model = request.model.replace('gpt-', '')
-    const url = `${this.geminiBaseUrl}/models/${model}:generateContent?key=${this.geminiKey}`
+    const model = request.model.replace('gpt-', '');
+    const url = `${this.geminiBaseUrl}/models/${model}:generateContent?key=${this.geminiKey}`;
 
     const body: any = {
       contents: request.messages.map((m) => ({
@@ -111,23 +116,23 @@ export class LLMAdapter {
         temperature: request.temperature ?? 0.7,
         maxOutputTokens: request.maxTokens ?? 4096,
       },
-    }
+    };
 
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    })
+    });
 
     if (!res.ok) {
-      this.recordFailure()
-      const error = await res.text()
-      throw new Error(`GEMINI_ERROR_${res.status}: ${error}`)
+      this.recordFailure();
+      const error = await res.text();
+      throw new Error(`GEMINI_ERROR_${res.status}: ${error}`);
     }
 
-    this.recordSuccess()
-    const json = await res.json()
-    const content = json.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    this.recordSuccess();
+    const json = await res.json();
+    const content = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
     return {
       content,
@@ -137,21 +142,23 @@ export class LLMAdapter {
         completionTokens: json.usageMetadata?.candidatesTokenCount ?? 0,
         totalTokens: json.usageMetadata?.totalTokenCount ?? 0,
       },
-    }
+    };
   }
 
   // ---------- Router: OpenAI primary, Gemini fallback ----------
 
   async chat(request: LLMRequest): Promise<LLMResponse> {
     try {
-      return await this.chatOpenAI(request)
+      return await this.chatOpenAI(request);
     } catch (error: any) {
-      this.logger.warn(`OpenAI failed, trying Gemini: ${error.message}`)
+      this.logger.warn(`OpenAI failed, trying Gemini: ${error.message}`);
       try {
-        return await this.chatGemini(request)
+        return await this.chatGemini(request);
       } catch (geminiError: any) {
-        this.logger.error(`Both providers failed: ${error.message} / ${geminiError.message}`)
-        throw new Error('ALL_LLM_PROVIDERS_FAILED')
+        this.logger.error(
+          `Both providers failed: ${error.message} / ${geminiError.message}`,
+        );
+        throw new Error('ALL_LLM_PROVIDERS_FAILED');
       }
     }
   }
@@ -175,8 +182,8 @@ export class LLMAdapter {
           schema,
         },
       },
-    })
+    });
 
-    return JSON.parse(response.content) as T
+    return JSON.parse(response.content) as T;
   }
 }

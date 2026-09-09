@@ -23,7 +23,7 @@ export class PDIController {
   @Get('skills')
   @ApiOperation({ summary: 'Obter scores de skills do usuário' })
   async getSkillScores(@CurrentUser() user: { userId: string }) {
-    return this.pdiService.getSkillScores(user.userId)
+    return this.pdiService.getSkillScores(user.userId);
   }
 
   @Post('quiz/submit')
@@ -33,13 +33,13 @@ export class PDIController {
     @CurrentUser() user: { userId: string },
     @Body() dto: SubmitQuizDto,
   ) {
-    return this.pdiService.submitQuizAttempt(user.userId, dto)
+    return this.pdiService.submitQuizAttempt(user.userId, dto);
   }
 
   @Get('journey')
   @ApiOperation({ summary: 'Obter grafo de jornada do usuário' })
   async getJourneyGraph(@CurrentUser() user: { userId: string }) {
-    return this.pdiService.getJourneyGraph(user.userId)
+    return this.pdiService.getJourneyGraph(user.userId);
   }
 
   @Post('skills/:skillId/update')
@@ -50,6 +50,6 @@ export class PDIController {
     @Param('skillId') skillId: string,
     @Body() dto: UpdateSkillScoreDto,
   ) {
-    return this.pdiService.updateSkillScore(user.userId, { ...dto, skillId })
+    return this.pdiService.updateSkillScore(user.userId, { ...dto, skillId });
   }
 }

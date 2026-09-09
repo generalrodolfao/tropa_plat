@@ -47,13 +47,18 @@ export class UsersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Obter usuário por id (self ou admin)' })
-  async getById(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+  async getById(
+    @Param('id') id: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     // permite self ou admin; se não for self, verifica role admin dentro do service? Guard fica mais simples: tenta checar
     // Se id !== actor e não é admin, bloqueia
     if (id !== actor.userId) {
       // vai exigir admin role via verificação manual
       const caller = await this.users.getById(actor.userId);
-      const isAdmin = (caller as any).roles.some((r: any) => r.role === 'admin');
+      const isAdmin = (caller as any).roles.some(
+        (r: any) => r.role === 'admin',
+      );
       if (!isAdmin) throw new ForbiddenException('Acesso negado');
     }
     return this.users.getById(id);
@@ -69,23 +74,39 @@ export class UsersController {
     // se não é self, só admin pode alterar status/email de outros
     if (id !== actor.userId) {
       const caller = await this.users.getById(actor.userId);
-      const isAdmin = (caller as any).roles.some((r: any) => r.role === 'admin');
-      if (!isAdmin) throw new ForbiddenException('Apenas admin pode editar outros usuários');
+      const isAdmin = (caller as any).roles.some(
+        (r: any) => r.role === 'admin',
+      );
+      if (!isAdmin)
+        throw new ForbiddenException(
+          'Apenas admin pode editar outros usuários',
+        );
       // non-admin não pode alterar status de outros
     } else {
       // usuário comum não pode alterar próprio status para evitar privilege escalation
-      if (dto.status) throw new ForbiddenException('Não é permitido alterar status do próprio usuário');
+      if (dto.status)
+        throw new ForbiddenException(
+          'Não é permitido alterar status do próprio usuário',
+        );
     }
     return this.users.update(id, dto, actor.userId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Desativar usuário (soft delete) - self ou admin' })
-  async softDelete(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+  async softDelete(
+    @Param('id') id: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
     if (id !== actor.userId) {
       const caller = await this.users.getById(actor.userId);
-      const isAdmin = (caller as any).roles.some((r: any) => r.role === 'admin');
-      if (!isAdmin) throw new ForbiddenException('Apenas admin pode remover outros usuários');
+      const isAdmin = (caller as any).roles.some(
+        (r: any) => r.role === 'admin',
+      );
+      if (!isAdmin)
+        throw new ForbiddenException(
+          'Apenas admin pode remover outros usuários',
+        );
     }
     return this.users.softDelete(id, actor.userId);
   }
@@ -98,7 +119,12 @@ export class UsersController {
     @Body() dto: AssignRoleDto,
     @CurrentUser() actor: { userId: string },
   ) {
-    return this.users.assignRole(id, dto.role, dto.organizationId, actor.userId);
+    return this.users.assignRole(
+      id,
+      dto.role,
+      dto.organizationId,
+      actor.userId,
+    );
   }
 
   @Delete(':id/roles/:role')

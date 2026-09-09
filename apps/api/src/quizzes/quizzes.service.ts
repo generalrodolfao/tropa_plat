@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateQuizDto, CreateQuestionDto, SubmitAttemptDto } from './dto/quizzes.dto';
+import {
+  CreateQuizDto,
+  CreateQuestionDto,
+  SubmitAttemptDto,
+} from './dto/quizzes.dto';
 
 @Injectable()
 export class QuizzesService {
@@ -42,14 +46,23 @@ export class QuizzesService {
 
   // ---------- Submit Attempt ----------
 
-  async submitAttempt(userId: string, quizId: string, dto: SubmitAttemptDto): Promise<{
+  async submitAttempt(
+    userId: string,
+    quizId: string,
+    dto: SubmitAttemptDto,
+  ): Promise<{
     attemptId: string;
     score: number;
     passed: boolean;
     earnedXp: number;
     totalQuestions: number;
     correctAnswers: number;
-    details: Array<{ questionId: string; correct: boolean; correctIndex: number; explanation?: string }>;
+    details: Array<{
+      questionId: string;
+      correct: boolean;
+      correctIndex: number;
+      explanation?: string;
+    }>;
   }> {
     const quiz = await this.prisma.quiz.findUnique({
       where: { id: quizId },
@@ -69,7 +82,12 @@ export class QuizzesService {
 
     // Calcular score
     let correctAnswers = 0;
-    const details: Array<{ questionId: string; correct: boolean; correctIndex: number; explanation?: string }> = [];
+    const details: Array<{
+      questionId: string;
+      correct: boolean;
+      correctIndex: number;
+      explanation?: string;
+    }> = [];
 
     for (const answer of dto.answers) {
       const question = quiz.questions.find((q) => q.id === answer.questionId);
@@ -87,7 +105,10 @@ export class QuizzesService {
     }
 
     const totalQuestions = quiz.questions.length;
-    const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
+    const score =
+      totalQuestions > 0
+        ? Math.round((correctAnswers / totalQuestions) * 100)
+        : 0;
     const passed = score >= quiz.passingScore;
 
     // Calcular XP ganho
@@ -95,7 +116,8 @@ export class QuizzesService {
     if (passed) {
       earnedXp = quiz.xpAward;
       // Bônus por velocidade (opcional)
-      const avgTimeMs = dto.answers.reduce((sum, a) => sum + a.timeMs, 0) / dto.answers.length;
+      const avgTimeMs =
+        dto.answers.reduce((sum, a) => sum + a.timeMs, 0) / dto.answers.length;
       if (avgTimeMs < 5000) earnedXp = Math.round(earnedXp * 1.2); // 20% bônus se rápido
     }
 
@@ -172,7 +194,13 @@ export class QuizzesService {
         answers: {
           include: {
             question: {
-              select: { id: true, prompt: true, options: true, correctIndex: true, explanation: true },
+              select: {
+                id: true,
+                prompt: true,
+                options: true,
+                correctIndex: true,
+                explanation: true,
+              },
             },
           },
         },
@@ -188,7 +216,9 @@ export class QuizzesService {
 
   async createQuiz(dto: CreateQuizDto): Promise<any> {
     // Verificar se a aula já tem quiz
-    const existing = await this.prisma.quiz.findUnique({ where: { lessonId: dto.lessonId } });
+    const existing = await this.prisma.quiz.findUnique({
+      where: { lessonId: dto.lessonId },
+    });
     if (existing) throw new Error('QUIZ_ALREADY_EXISTS_FOR_LESSON');
 
     return this.prisma.quiz.create({

@@ -11,9 +11,15 @@ export class WebhookHandler {
     private readonly mp: MercadoPagoAdapter,
   ) {}
 
-  async handlePaymentNotification(eventId: string, action: string, paymentId: string): Promise<void> {
+  async handlePaymentNotification(
+    eventId: string,
+    action: string,
+    paymentId: string,
+  ): Promise<void> {
     // Idempotência
-    const existing = await this.prisma.webhookEvent.findUnique({ where: { eventId } });
+    const existing = await this.prisma.webhookEvent.findUnique({
+      where: { eventId },
+    });
     if (existing) {
       this.logger.debug(`Webhook ${eventId} already processed, skipping`);
       return;
@@ -45,8 +51,14 @@ export class WebhookHandler {
     }
   }
 
-  async handleSubscriptionNotification(eventId: string, action: string, subscriptionId: string): Promise<void> {
-    const existing = await this.prisma.webhookEvent.findUnique({ where: { eventId } });
+  async handleSubscriptionNotification(
+    eventId: string,
+    action: string,
+    subscriptionId: string,
+  ): Promise<void> {
+    const existing = await this.prisma.webhookEvent.findUnique({
+      where: { eventId },
+    });
     if (existing) {
       this.logger.debug(`Webhook ${eventId} already processed, skipping`);
       return;
@@ -107,13 +119,21 @@ export class WebhookHandler {
         where: { id: paymentRecord.id },
         data: {
           status: newStatus as any,
-          paidAt: payment.status === 'approved' ? new Date(payment.date_approved!) : null,
-          receiptUrl: (payment as any).statement_descriptor ? String((payment as any).statement_descriptor) : undefined,
+          paidAt:
+            payment.status === 'approved'
+              ? new Date(payment.date_approved!)
+              : null,
+          receiptUrl: (payment as any).statement_descriptor
+            ? String((payment as any).statement_descriptor)
+            : undefined,
         },
       });
 
       if (payment.status === 'approved') {
-        await this.reactivateSubscriptionIfPastDue(tx, paymentRecord.subscriptionId);
+        await this.reactivateSubscriptionIfPastDue(
+          tx,
+          paymentRecord.subscriptionId,
+        );
       }
 
       // Ledger
@@ -159,7 +179,9 @@ export class WebhookHandler {
     tx: any,
     subscriptionId: string,
   ): Promise<void> {
-    const sub = await tx.subscription.findUnique({ where: { id: subscriptionId } });
+    const sub = await tx.subscription.findUnique({
+      where: { id: subscriptionId },
+    });
     if (sub && sub.status === 'past_due') {
       await tx.subscription.update({
         where: { id: subscriptionId },

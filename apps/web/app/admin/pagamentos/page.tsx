@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { CreditCard, Search, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -26,12 +26,7 @@ export default function AdminPagamentosPage() {
   const [total, setTotal] = useState(0)
   const limit = 20
 
-  useEffect(() => {
-    loadSubscriptions()
-  }, [page, statusFilter])
-
-  async function loadSubscriptions() {
-    setLoading(true)
+  const loadSubscriptions = useCallback(async () => {
     try {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) })
       if (statusFilter) params.set("status", statusFilter)
@@ -48,7 +43,11 @@ export default function AdminPagamentosPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [page, statusFilter])
+
+  useEffect(() => {
+    loadSubscriptions()
+  }, [loadSubscriptions])
 
   const totalPages = Math.ceil(total / limit)
 
@@ -87,7 +86,7 @@ export default function AdminPagamentosPage() {
               key={status}
               variant={statusFilter === status ? "default" : "outline"}
               size="sm"
-              onClick={() => { setStatusFilter(status); setPage(1) }}
+              onClick={() => { setLoading(true); setStatusFilter(status); setPage(1) }}
             >
               {status === "" ? "Todos" : statusLabels[status] ?? status}
             </Button>
@@ -160,10 +159,10 @@ export default function AdminPagamentosPage() {
             Página {page} de {totalPages} ({total} assinaturas)
           </span>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => { setLoading(true); setPage(page - 1) }}>
               Anterior
             </Button>
-            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(page + 1)}>
+            <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => { setLoading(true); setPage(page + 1) }}>
               Próxima
             </Button>
           </div>

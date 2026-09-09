@@ -156,9 +156,12 @@ export class LeaguesService {
     });
 
     if (previousLeague) {
-      const promoted = previousLeague.rankings.filter((r) => r.eligiblePromotion);
+      const promoted = previousLeague.rankings.filter(
+        (r) => r.eligiblePromotion,
+      );
       const relegated = previousLeague.rankings.filter(
-        (r) => r.rank > previousLeague.cohortSize - previousLeague.promotionCount,
+        (r) =>
+          r.rank > previousLeague.cohortSize - previousLeague.promotionCount,
       );
 
       // Notify promoted users

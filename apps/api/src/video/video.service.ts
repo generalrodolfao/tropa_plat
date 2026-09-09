@@ -19,10 +19,14 @@ export class VideoService {
     videoUid: string;
     assetId: string;
   }> {
-    const lesson = await this.prisma.lesson.findUnique({ where: { id: dto.lessonId } });
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: dto.lessonId },
+    });
     if (!lesson) throw new Error('LESSON_NOT_FOUND');
 
-    const existing = await this.prisma.videoAsset.findUnique({ where: { lessonId: dto.lessonId } });
+    const existing = await this.prisma.videoAsset.findUnique({
+      where: { lessonId: dto.lessonId },
+    });
     if (existing && existing.status === 'ready') {
       throw new Error('VIDEO_ALREADY_EXISTS');
     }
@@ -80,7 +84,10 @@ export class VideoService {
           if (asset.mp4Url) {
             // Extract the video UID from the HLS URL to build MP4 URL
             // CF Stream: https://customer-{code}.cloudflarestream.com/{uid}/...
-            const mp4BaseUrl = asset.mp4Url.replace('/downloads/default.mp4', '');
+            const mp4BaseUrl = asset.mp4Url.replace(
+              '/downloads/default.mp4',
+              '',
+            );
             signedMp4Url = `${mp4BaseUrl}/downloads/default.mp4?token=${signed.token}`;
           }
         } catch (error) {
@@ -102,7 +109,9 @@ export class VideoService {
     }
 
     // Fallback: check lesson.content.videoUrl
-    const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
     if (lesson?.content) {
       const content = lesson.content as any;
       if (content.videoUrl) {
@@ -169,8 +178,13 @@ export class VideoService {
 
   // ---------- Transcript ----------
 
-  async upsertTranscript(videoAssetId: string, dto: CreateTranscriptDto): Promise<any> {
-    const asset = await this.prisma.videoAsset.findUnique({ where: { id: videoAssetId } });
+  async upsertTranscript(
+    videoAssetId: string,
+    dto: CreateTranscriptDto,
+  ): Promise<any> {
+    const asset = await this.prisma.videoAsset.findUnique({
+      where: { id: videoAssetId },
+    });
     if (!asset) throw new Error('VIDEO_ASSET_NOT_FOUND');
 
     return this.prisma.transcript.upsert({
@@ -234,7 +248,10 @@ export class VideoService {
           ...currentChapter,
           endTime: prevSentence.end,
           duration: prevSentence.end - currentChapter.startTime,
-          summary: currentChapter.sentences.map((s: any) => s.text).join(' ').slice(0, 200),
+          summary: currentChapter.sentences
+            .map((s: any) => s.text)
+            .join(' ')
+            .slice(0, 200),
         });
 
         currentChapter = {
@@ -250,12 +267,16 @@ export class VideoService {
     }
 
     // Add final chapter
-    const lastSentence = currentChapter.sentences[currentChapter.sentences.length - 1];
+    const lastSentence =
+      currentChapter.sentences[currentChapter.sentences.length - 1];
     chapters.push({
       ...currentChapter,
       endTime: lastSentence.end,
       duration: lastSentence.end - currentChapter.startTime,
-      summary: currentChapter.sentences.map((s: any) => s.text).join(' ').slice(0, 200),
+      summary: currentChapter.sentences
+        .map((s: any) => s.text)
+        .join(' ')
+        .slice(0, 200),
     });
 
     return { chapters };

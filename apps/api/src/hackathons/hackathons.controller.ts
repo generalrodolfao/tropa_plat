@@ -130,11 +130,21 @@ export class HackathonsController {
     @Body() body: { hackathonId: string; name: string },
   ) {
     try {
-      return await this.hackathons.createTeam(user.userId, body.hackathonId, body.name);
+      return await this.hackathons.createTeam(
+        user.userId,
+        body.hackathonId,
+        body.name,
+      );
     } catch (e) {
       if (e instanceof Error) {
-        if (e.message === 'ALREADY_IN_TEAM') throw new BadRequestException('Você já está em uma equipe neste hackathon');
-        if (e.message === 'HACKATHON_NOT_OPEN') throw new BadRequestException('Hackathon não está aceitando inscrições');
+        if (e.message === 'ALREADY_IN_TEAM')
+          throw new BadRequestException(
+            'Você já está em uma equipe neste hackathon',
+          );
+        if (e.message === 'HACKATHON_NOT_OPEN')
+          throw new BadRequestException(
+            'Hackathon não está aceitando inscrições',
+          );
       }
       throw e;
     }
@@ -169,8 +179,12 @@ export class HackathonsController {
       return await this.hackathons.submit(user.userId, body.hackathonId, body);
     } catch (e) {
       if (e instanceof Error) {
-        if (e.message === 'ALREADY_SUBMITTED') throw new BadRequestException('Você já submeteu um projeto');
-        if (e.message === 'HACKATHON_NOT_ACCEPTING_SUBMISSIONS') throw new BadRequestException('Hackathon não está aceitando submissões');
+        if (e.message === 'ALREADY_SUBMITTED')
+          throw new BadRequestException('Você já submeteu um projeto');
+        if (e.message === 'HACKATHON_NOT_ACCEPTING_SUBMISSIONS')
+          throw new BadRequestException(
+            'Hackathon não está aceitando submissões',
+          );
       }
       throw e;
     }

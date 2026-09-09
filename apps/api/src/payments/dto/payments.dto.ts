@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  Allow,
+  IsBoolean,
   IsEmail,
   IsEnum,
   IsOptional,
@@ -54,7 +56,7 @@ export class WebhookMercadoPagoDto {
   id: string;
 
   @ApiProperty()
-  @IsString()
+  @IsBoolean()
   live_mode: boolean;
 
   @ApiProperty()
@@ -78,6 +80,7 @@ export class WebhookMercadoPagoDto {
   action: string;
 
   @ApiProperty()
+  @Allow()
   data: Record<string, string>;
 }
 
@@ -92,7 +95,9 @@ export class CreatePlanDto {
   @MaxLength(100)
   name: string;
 
-  @ApiProperty({ enum: ['b2c_monthly', 'b2c_annual', 'b2b_seats', 'institution'] })
+  @ApiProperty({
+    enum: ['b2c_monthly', 'b2c_annual', 'b2b_seats', 'institution'],
+  })
   @IsEnum(['b2c_monthly', 'b2c_annual', 'b2b_seats', 'institution'] as const)
   type: string;
 

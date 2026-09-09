@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -24,14 +24,9 @@ export function StepQuiz({ data, onUpdate }: StepQuizProps) {
   const [currentSkill, setCurrentSkill] = useState(0)
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [answers, setAnswers] = useState<Record<string, number>>(data.quizAnswers || {})
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadQuestions()
-  }, [currentSkill])
-
-  const loadQuestions = async () => {
-    setLoading(true)
+  const loadQuestions = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/v1/ai/quiz/generate`, {
         method: "POST",
@@ -52,7 +47,11 @@ export function StepQuiz({ data, onUpdate }: StepQuizProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentSkill])
+
+  useEffect(() => {
+    loadQuestions()
+  }, [loadQuestions])
 
   const handleAnswer = (questionId: string, selectedIndex: number) => {
     const newAnswers = { ...answers, [questionId]: selectedIndex }
@@ -110,14 +109,14 @@ export function StepQuiz({ data, onUpdate }: StepQuizProps) {
       <div className="flex justify-between">
         <Button
           variant="outline"
-          onClick={() => setCurrentSkill((prev) => Math.max(0, prev - 1))}
+          onClick={() => { setLoading(true); setCurrentSkill((prev) => Math.max(0, prev - 1)) }}
           disabled={currentSkill === 0}
           className="border-slate-600 text-slate-300"
         >
           Skill Anterior
         </Button>
         <Button
-          onClick={() => setCurrentSkill((prev) => Math.min(SKILLS.length - 1, prev + 1))}
+          onClick={() => { setLoading(true); setCurrentSkill((prev) => Math.min(SKILLS.length - 1, prev + 1)) }}
           disabled={currentSkill === SKILLS.length - 1}
           className="bg-purple-600 hover:bg-purple-700"
         >

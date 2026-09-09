@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -12,7 +16,15 @@ export class TrailsService {
     const trails = await this.prisma.trail.findMany({
       where,
       include: {
-        course: { select: { id: true, slug: true, title: true, level: true, xpTotal: true } },
+        course: {
+          select: {
+            id: true,
+            slug: true,
+            title: true,
+            level: true,
+            xpTotal: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -46,14 +58,18 @@ export class TrailsService {
     });
     if (!trail) throw new NotFoundException('Trilha não encontrada');
 
-    const lessonIds = trail.course.modules.flatMap((m) => m.lessons.map((l) => l.id));
+    const lessonIds = trail.course.modules.flatMap((m) =>
+      m.lessons.map((l) => l.id),
+    );
     const progress = await this.prisma.lessonProgress.findMany({
       where: { userId, lessonId: { in: lessonIds } },
       select: { lessonId: true, status: true, completedAt: true },
     });
     const completed = progress.filter((p) => p.status === 'completed').length;
     const total = lessonIds.length;
-    const progressPct = total ? Math.round((completed / total) * 100) : trail.progress;
+    const progressPct = total
+      ? Math.round((completed / total) * 100)
+      : trail.progress;
 
     return {
       id: trail.id,
@@ -77,7 +93,9 @@ export class TrailsService {
     difficulty: string = 'intermediate',
   ) {
     // valida curso existe
-    const course = await this.prisma.course.findUnique({ where: { id: courseId } });
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+    });
     if (!course) throw new NotFoundException('Curso não encontrado');
 
     // evita duplicata user+course
@@ -87,7 +105,15 @@ export class TrailsService {
     if (exists) throw new ConflictException('Trilha já existe para este curso');
 
     const trail = await this.prisma.trail.create({
-      data: { name, description, difficulty, userId, courseId, progress: 0, status: 'active' },
+      data: {
+        name,
+        description,
+        difficulty,
+        userId,
+        courseId,
+        progress: 0,
+        status: 'active',
+      },
       include: { course: { select: { id: true, slug: true, title: true } } },
     });
 
@@ -104,15 +130,26 @@ export class TrailsService {
     return trail;
   }
 
-  async updateProgress(userId: string, trailId: string, completedLessonIds: string[]) {
-    const trail = await this.prisma.trail.findFirst({ where: { id: trailId, userId } });
+  async updateProgress(
+    userId: string,
+    trailId: string,
+    completedLessonIds: string[],
+  ) {
+    const trail = await this.prisma.trail.findFirst({
+      where: { id: trailId, userId },
+    });
     if (!trail) throw new NotFoundException('Trilha não encontrada');
 
     // marca lições como completed se ainda não estiverem
     for (const lessonId of completedLessonIds) {
       await this.prisma.lessonProgress.upsert({
         where: { userId_lessonId: { userId, lessonId } },
-        create: { userId, lessonId, status: 'completed', completedAt: new Date() },
+        create: {
+          userId,
+          lessonId,
+          status: 'completed',
+          completedAt: new Date(),
+        },
         update: { status: 'completed', completedAt: new Date() },
       });
     }
@@ -120,11 +157,19 @@ export class TrailsService {
     // recalcula progresso real
     const course = await this.prisma.trail.findUnique({
       where: { id: trailId },
-      include: { course: { include: { modules: { include: { lessons: true } } } } },
+      include: {
+        course: { include: { modules: { include: { lessons: true } } } },
+      },
     });
     const total = course!.course.modules.flatMap((m) => m.lessons).length;
     const completed = await this.prisma.lessonProgress.count({
-      where: { userId, lessonId: { in: course!.course.modules.flatMap((m) => m.lessons.map((l) => l.id)) }, status: 'completed' },
+      where: {
+        userId,
+        lessonId: {
+          in: course!.course.modules.flatMap((m) => m.lessons.map((l) => l.id)),
+        },
+        status: 'completed',
+      },
     });
     const pct = total ? Math.round((completed / total) * 100) : 0;
 
@@ -137,7 +182,9 @@ export class TrailsService {
   }
 
   async remove(userId: string, trailId: string) {
-    const trail = await this.prisma.trail.findFirst({ where: { id: trailId, userId } });
+    const trail = await this.prisma.trail.findFirst({
+      where: { id: trailId, userId },
+    });
     if (!trail) throw new NotFoundException('Trilha não encontrada');
     await this.prisma.trail.delete({ where: { id: trailId } });
     return { ok: true };

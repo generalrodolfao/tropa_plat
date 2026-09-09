@@ -86,7 +86,12 @@ export class CoursesService {
 
   // ---- Admin — criação de conteúdo ----
 
-  async createCourse(data: { slug: string; title: string; description?: string; level?: string }) {
+  async createCourse(data: {
+    slug: string;
+    title: string;
+    description?: string;
+    level?: string;
+  }) {
     return this.prisma.course.create({
       data: {
         slug: data.slug,
@@ -100,7 +105,10 @@ export class CoursesService {
     });
   }
 
-  async createModule(courseId: string, data: { title: string; codename?: string; type?: string }) {
+  async createModule(
+    courseId: string,
+    data: { title: string; codename?: string; type?: string },
+  ) {
     const count = await this.prisma.module.count({ where: { courseId } });
     return this.prisma.module.create({
       data: {
@@ -115,7 +123,16 @@ export class CoursesService {
     });
   }
 
-  async createLesson(moduleId: string, data: { title: string; type: string; durationSec?: number; xpAward?: number; content?: any }) {
+  async createLesson(
+    moduleId: string,
+    data: {
+      title: string;
+      type: string;
+      durationSec?: number;
+      xpAward?: number;
+      content?: any;
+    },
+  ) {
     const count = await this.prisma.lesson.count({ where: { moduleId } });
     return this.prisma.lesson.create({
       data: {
@@ -130,10 +147,15 @@ export class CoursesService {
     });
   }
 
-  async updateLesson(lessonId: string, data: { title?: string; content?: any }) {
-    const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+  async updateLesson(
+    lessonId: string,
+    data: { title?: string; content?: any },
+  ) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+    });
     if (!lesson) throw new NotFoundException('Aula não encontrada');
-    
+
     return this.prisma.lesson.update({
       where: { id: lessonId },
       data: {
@@ -143,15 +165,28 @@ export class CoursesService {
     });
   }
 
-  async createEbook(data: { slug: string; title: string; category?: string; pages?: number }) {
+  async createEbook(data: {
+    slug: string;
+    title: string;
+    category?: string;
+    pages?: number;
+  }) {
     return this.prisma.ebook.upsert({
       where: { slug: data.slug },
-      create: { slug: data.slug, title: data.title, category: data.category ?? 'Geral', pages: data.pages ?? 100 },
+      create: {
+        slug: data.slug,
+        title: data.title,
+        category: data.category ?? 'Geral',
+        pages: data.pages ?? 100,
+      },
       update: { title: data.title, category: data.category, pages: data.pages },
     });
   }
 
   async publishCourse(courseId: string) {
-    return this.prisma.course.update({ where: { id: courseId }, data: { status: 'published', publishedAt: new Date() } });
+    return this.prisma.course.update({
+      where: { id: courseId },
+      data: { status: 'published', publishedAt: new Date() },
+    });
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ListUsersDto, UpdateUserDto } from './dto/users.dto';
 
@@ -63,7 +67,9 @@ export class UsersService {
     if (!user) throw new NotFoundException('Usuário não encontrado');
 
     if (dto.email && dto.email.toLowerCase() !== user.email) {
-      const exists = await this.prisma.user.findUnique({ where: { email: dto.email.toLowerCase() } });
+      const exists = await this.prisma.user.findUnique({
+        where: { email: dto.email.toLowerCase() },
+      });
       if (exists) throw new ConflictException('Email já em uso');
     }
 
@@ -111,9 +117,17 @@ export class UsersService {
         where: { id },
         data: { status: 'deleted', deletedAt: new Date() },
       });
-      await tx.session.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } });
+      await tx.session.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
       await tx.auditLog.create({
-        data: { actorUserId: actorId, action: 'user.soft_delete', resourceType: 'user', resourceId: id },
+        data: {
+          actorUserId: actorId,
+          action: 'user.soft_delete',
+          resourceType: 'user',
+          resourceId: id,
+        },
       });
     });
     return { ok: true };
@@ -135,33 +149,65 @@ export class UsersService {
     });
     await this.prisma.profile.deleteMany({ where: { userId: id } });
     await this.prisma.auditLog.create({
-      data: { actorUserId: actorId, action: 'user.lgpd_delete', resourceType: 'user', resourceId: id },
+      data: {
+        actorUserId: actorId,
+        action: 'user.lgpd_delete',
+        resourceType: 'user',
+        resourceId: id,
+      },
     });
     return { ok: true };
   }
 
-  async assignRole(userId: string, role: string, organizationId: string | undefined, actorId: string) {
+  async assignRole(
+    userId: string,
+    role: string,
+    organizationId: string | undefined,
+    actorId: string,
+  ) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new NotFoundException('Usuário não encontrado');
 
     const exists = await this.prisma.userRole.findFirst({
-      where: { userId, role: role as any, organizationId: organizationId ?? null } as any,
+      where: {
+        userId,
+        role: role as any,
+        organizationId: organizationId ?? null,
+      } as any,
     });
     if (exists) throw new ConflictException('Usuário já possui este papel');
 
     await this.prisma.userRole.create({
-      data: { userId, role: role as any, organizationId: organizationId as any } as any,
+      data: {
+        userId,
+        role: role as any,
+        organizationId: organizationId as any,
+      } as any,
     });
     await this.prisma.auditLog.create({
-      data: { actorUserId: actorId, action: 'user.assign_role', resourceType: 'user', resourceId: userId, after: { role, organizationId } },
+      data: {
+        actorUserId: actorId,
+        action: 'user.assign_role',
+        resourceType: 'user',
+        resourceId: userId,
+        after: { role, organizationId },
+      },
     });
     return this.getById(userId);
   }
 
   async removeRole(userId: string, role: string, actorId: string) {
-    await this.prisma.userRole.deleteMany({ where: { userId, role: role as any } as any });
+    await this.prisma.userRole.deleteMany({
+      where: { userId, role: role as any } as any,
+    });
     await this.prisma.auditLog.create({
-      data: { actorUserId: actorId, action: 'user.remove_role', resourceType: 'user', resourceId: userId, after: { role } },
+      data: {
+        actorUserId: actorId,
+        action: 'user.remove_role',
+        resourceType: 'user',
+        resourceId: userId,
+        after: { role },
+      },
     });
     return this.getById(userId);
   }
@@ -217,9 +263,20 @@ export class UsersService {
             githubUrl: user.profile.githubUrl,
           }
         : null,
-      roles: (user.roles ?? []).map((r: any) => ({ role: r.role, organizationId: r.organizationId })),
-      xp: user.userXp ? { totalXp: user.userXp.totalXp, weekXp: user.userXp.weekXp, level: user.userXp.level } : null,
-      streak: user.streak ? { current: user.streak.current, longest: user.streak.longest } : null,
+      roles: (user.roles ?? []).map((r: any) => ({
+        role: r.role,
+        organizationId: r.organizationId,
+      })),
+      xp: user.userXp
+        ? {
+            totalXp: user.userXp.totalXp,
+            weekXp: user.userXp.weekXp,
+            level: user.userXp.level,
+          }
+        : null,
+      streak: user.streak
+        ? { current: user.streak.current, longest: user.streak.longest }
+        : null,
     };
   }
 }

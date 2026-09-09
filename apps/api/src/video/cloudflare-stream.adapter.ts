@@ -3,7 +3,12 @@ import { ConfigService } from '@nestjs/config';
 
 export interface CFStreamVideo {
   uid: string;
-  status: { state: string; pctComplete?: number; errorReasonCode?: string; errorReasonText?: string };
+  status: {
+    state: string;
+    pctComplete?: number;
+    errorReasonCode?: string;
+    errorReasonText?: string;
+  };
   meta?: Record<string, unknown>;
   created: string;
   modified: string;
@@ -49,7 +54,11 @@ export class CloudflareStreamAdapter {
     };
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
     const url = `${this.baseUrl}${path}`;
     this.logger.debug(`CF Stream ${method} ${url}`);
 
@@ -59,10 +68,12 @@ export class CloudflareStreamAdapter {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const json = await res.json() as any;
+    const json = await res.json();
     if (!json.success) {
       this.logger.error(`CF Stream error: ${JSON.stringify(json.errors)}`);
-      throw new Error(`CLOUDFLARE_STREAM_ERROR: ${JSON.stringify(json.errors)}`);
+      throw new Error(
+        `CLOUDFLARE_STREAM_ERROR: ${JSON.stringify(json.errors)}`,
+      );
     }
 
     return json.result as T;
@@ -89,7 +100,11 @@ export class CloudflareStreamAdapter {
     return this.request<CFStreamVideo>('GET', `/${uid}`);
   }
 
-  async listVideos(params?: { limit?: number; before?: string; after?: string }): Promise<CFStreamVideo[]> {
+  async listVideos(params?: {
+    limit?: number;
+    before?: string;
+    after?: string;
+  }): Promise<CFStreamVideo[]> {
     const p = new URLSearchParams();
     if (params?.limit) p.set('limit', String(params.limit));
     if (params?.before) p.set('before', params.before);
@@ -100,7 +115,10 @@ export class CloudflareStreamAdapter {
 
   // ---------- Signed URLs ----------
 
-  async getSignedURL(uid: string, exp?: number): Promise<{ token: string; url: string; expiresAt: number }> {
+  async getSignedURL(
+    uid: string,
+    exp?: number,
+  ): Promise<{ token: string; url: string; expiresAt: number }> {
     // Cloudflare Stream signed URLs via API
     const expirationSeconds = exp ?? Math.floor(Date.now() / 1000) + 60 * 60; // 1h default
     const url = await this.request<string>('POST', `/${uid}/token_access`, {
@@ -121,7 +139,14 @@ export class CloudflareStreamAdapter {
     return this.request<any[]>('GET', '/watermarks');
   }
 
-  async createWatermark(name: string, imageKey: string, opacity: number, position: string, size: number, margin: number): Promise<any> {
+  async createWatermark(
+    name: string,
+    imageKey: string,
+    opacity: number,
+    position: string,
+    size: number,
+    margin: number,
+  ): Promise<any> {
     return this.request<any>('POST', '/watermarks', {
       name,
       image_key: imageKey,

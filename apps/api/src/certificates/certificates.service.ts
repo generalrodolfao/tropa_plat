@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IssueCertificateDto } from './dto/certificates.dto';
 import { createHash } from 'crypto';
@@ -10,9 +14,9 @@ export class CertificatesService {
   // ---------- Generate serial number ----------
 
   private generateSerial(): string {
-    const timestamp = Date.now().toString(36).toUpperCase()
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase()
-    return `TD-${timestamp}-${random}`
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `TD-${timestamp}-${random}`;
   }
 
   // ---------- Issue certificate ----------
@@ -56,8 +60,8 @@ export class CertificatesService {
     }
 
     // Generate serial
-    const serial = this.generateSerial()
-    const verifyUrl = `/certificates/verify/${serial}`
+    const serial = this.generateSerial();
+    const verifyUrl = `/certificates/verify/${serial}`;
 
     // Create certificate
     const certificate = await this.prisma.certificate.create({
