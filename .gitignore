@@ -11,3 +11,11 @@ coverage/
 .pnp.*
 .turbo/
 .seed-dist/
+
+# Segredos e credenciais locais
+*.cred
+*.secret
+vps_credentials*
+migration_results.json
+migration_summary.json
+migration.log
