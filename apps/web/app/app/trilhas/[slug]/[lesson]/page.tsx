@@ -34,17 +34,38 @@ export default function LessonPage() {
 
         // Buscar vídeo se for tipo video
         if (data.type === "video") {
-          try {
-            const vidRes = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/v1/video/lesson/${lessonId}`,
-              { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } }
-            )
-            if (vidRes.ok) {
-              const vid = await vidRes.json()
-              setVideoData(vid)
-              if (vid.transcript) setTranscript(vid.transcript)
-            }
-          } catch {}
+          // Primeiro verificar se tem URL no content
+          const content = data.content as any
+          if (content?.streamUrl) {
+            // Usar URL do content diretamente
+            setVideoData({
+              status: "ready",
+              hlsUrl: content.streamUrl,
+              mp4Url: content.mp4Url || null,
+              uid: content.videoUid || null
+            })
+          } else if (content?.videoUrl) {
+            // Usar URL do content diretamente
+            setVideoData({
+              status: "ready",
+              hlsUrl: content.videoUrl,
+              mp4Url: null,
+              uid: null
+            })
+          } else {
+            // Tentar buscar da API
+            try {
+              const vidRes = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/v1/video/lesson/${lessonId}`,
+                { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } }
+              )
+              if (vidRes.ok) {
+                const vid = await vidRes.json()
+                setVideoData(vid)
+                if (vid.transcript) setTranscript(vid.transcript)
+              }
+            } catch {}
+          }
         }
 
         // Buscar próxima aula
@@ -102,7 +123,10 @@ export default function LessonPage() {
   if (!lesson) return <div className="p-8 text-sm">Aula não encontrada</div>
 
   const course = lesson.module?.course
-  const hasVideo = videoData?.status === "ready" && videoData?.hlsUrl
+  const content = lesson.content as any
+  const hasVideo = (videoData?.status === "ready" && videoData?.hlsUrl) || 
+                   (content?.streamUrl) || 
+                   (content?.videoUrl)
 
   return (
     <div className="space-y-6">
@@ -126,6 +150,7 @@ export default function LessonPage() {
             title={lesson.title}
             hasVideo={hasVideo}
             videoData={videoData}
+            content={content}
             onProgress={handleVideoProgress}
             onEnded={handleVideoEnded}
           />
@@ -205,11 +230,12 @@ export default function LessonPage() {
   )
 }
 
-function LessonContent({ type, title, hasVideo, videoData, onProgress, onEnded }: {
+function LessonContent({ type, title, hasVideo, videoData, content, onProgress, onEnded }: {
   type: string
   title: string
   hasVideo?: boolean
   videoData?: any
+  content?: any
   onProgress?: (seconds: number) => void
   onEnded?: () => void
 }) {
@@ -218,13 +244,16 @@ function LessonContent({ type, title, hasVideo, videoData, onProgress, onEnded }
   if (type === "project") return <ProjectMock />
   if (type === "article") return <ArticleMock title={title} />
 
-  // Video lesson
-  if (hasVideo && videoData) {
+  // Video lesson - check for video URL from multiple sources
+  const videoUrl = videoData?.hlsUrl || content?.streamUrl || content?.videoUrl
+  const mp4Url = videoData?.mp4Url || content?.mp4Url
+  
+  if (hasVideo && videoUrl) {
     return (
       <div className="space-y-4">
         <VideoPlayer
-          hlsUrl={videoData.hlsUrl}
-          mp4Url={videoData.mp4Url}
+          hlsUrl={videoUrl}
+          mp4Url={mp4Url}
           title={title}
           onProgress={onProgress}
           onEnded={onEnded}
