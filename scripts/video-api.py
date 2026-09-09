@@ -19,9 +19,9 @@ CORS(app)
 
 # Configuração
 VIDEO_DIR = "/var/www/videos"
-DB_URL = os.getenv("DATABASE_URL", "postgresql://postgres:REMOVED_SECRET@postgres-production-8d52.up.railway.app:5432/railway")
-VPS_IP = "23.106.44.84"
-STREAM_PORT = "8081"
+DB_URL = os.getenv("DATABASE_URL", "")
+VPS_IP = os.getenv("VPS_IP", "23.106.44.84")
+STREAM_PORT = os.getenv("STREAM_PORT", "8081")
 
 os.makedirs(VIDEO_DIR, exist_ok=True)
 

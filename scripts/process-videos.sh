@@ -2,15 +2,17 @@
 # Process videos - handles special chars in filenames
 
 OUTPUT_DIR="/var/www/videos"
-API="https://api-production-28e6.up.railway.app"
-VPS="23.106.44.84:8081"
+API="${API_URL:-https://api-production-28e6.up.railway.app}"
+VPS="${VPS_IP:-23.106.44.84}:${STREAM_PORT:-8081}"
+EMAIL="${ADMIN_EMAIL:-admin@tropadosdados.com}"
+PASSWORD="${ADMIN_PASSWORD:-REMOVED_SECRET}"
 
 mkdir -p "$OUTPUT_DIR"
 
 # Get token
 TOKEN=$(curl -s -X POST "$API/v1/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@tropadosdados.com","password":"REMOVED_SECRET"}' | \
+  -d "{\"email\":\"$EMAIL\",\"password\":\"$PASSWORD\"}" | \
   python3 -c "import sys,json;print(json.load(sys.stdin)['accessToken'])")
 
 echo "Token OK: ${TOKEN:0:20}..."
