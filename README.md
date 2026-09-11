@@ -32,17 +32,17 @@ Plataforma completa de educação em dados com streaming de vídeos self-hosted,
 
 ### URLs de Streaming
 
-- **Base**: `http://23.106.44.84:8081`
-- **Playlist HLS**: `http://23.106.44.84:8081/videos/{video_id}/playlist.m3u8`
-- **Segmentos**: `http://23.106.44.84:8081/videos/{video_id}/segment_XXX.ts`
+- **Base (HTTPS)**: `https://23.106.44.84.nip.io:8081`
+- **Playlist HLS**: `https://23.106.44.84.nip.io:8081/videos/{video_id}/playlist.m3u8`
+- **Segmentos**: `https://23.106.44.84.nip.io:8081/videos/{video_id}/segment_XXX.ts`
+
+> ⚠️ Use sempre o hostname `23.106.44.84.nip.io` (certificado Let's Encrypt cobre
+> o hostname, nao o IP). Renovacao automatica via `certbot.timer`.
 
 ### Vídeos Disponíveis
 
-| ID | Aula | Status |
-|----|------|--------|
-| ef1caee8 | Boas-vindas à Tropa (AWS Introdução) | ✅ Pronto |
-| 14463be3 | 2025-12 - CI-CD — Aula 01 | ✅ Pronto |
-| c00101ce | 2026-07 - Missão Blindagem — Aula 01 | ✅ Pronto |
+Status atual: **24 aulas** vinculadas no Railway com `content.streamUrl` HTTPS.
+Lista completa de playlists HLS em `/var/www/videos/process_results.json` na VPS.
 
 ### Como Adicionar Novos Vídeos
 
@@ -68,12 +68,10 @@ Plataforma completa de educação em dados com streaming de vídeos self-hosted,
 
 ```bash
 # Deploy frontend
-railway link -p a74eef13-363b-4185-b547-e9335d46bd65 -s web
-railway up
+railway up --project tropa-dos-dados --environment production --service web
 
 # Deploy API
-railway link -p a74eef13-363b-4185-b547-e9335d46bd65 -s api
-railway up
+railway up --project tropa-dos-dados --environment production --service api
 ```
 
 ### VPS (Streaming)
@@ -157,16 +155,17 @@ startCommand = "npx prisma db push --accept-data-loss && node dist/main.js"
 
 ## 📊 Métricas
 
-- **32 cursos** importados do Google Drive
-- **192 aulas** (2 módulos × 3 aulas × 32 cursos)
-- **3 vídeos** processados e disponíveis
-- **75 IDs** de vídeos no sistema
+- **34 cursos** no catálogo (Railway)
+- **203 aulas** (Railway)
+- **24 aulas** com vídeo HLS vinculado (streamUrl HTTPS)
+- **26 playlists** HLS servidas na VPS
 
 ## 🔐 Segurança
 
 - **JWT**: Autenticação com access/refresh tokens
 - **Roles**: Controle de acesso por função (admin, student)
 - **CORS**: Configurado para produção
+- **TLS**: HTTPS na porta 8081 (Let's Encrypt, hostname nip.io)
 - **Firewall**: UFW configurado na VPS
 
 ## 🎯 Próximos Passos

@@ -5,7 +5,7 @@ OUTPUT_DIR="/var/www/videos"
 API="${API_URL:-https://api-production-28e6.up.railway.app}"
 VPS="${VPS_IP:-23.106.44.84}:${STREAM_PORT:-8081}"
 EMAIL="${ADMIN_EMAIL:-admin@tropadosdados.com}"
-PASSWORD="${ADMIN_PASSWORD:-REMOVED_SECRET}"
+PASSWORD="${ADMIN_PASSWORD}"
 
 mkdir -p "$OUTPUT_DIR"
 

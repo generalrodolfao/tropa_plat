@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 CONFIG = {
     'gdrive_remote': 'gdrive',
     'gdrive_path': '_Organizar/Pastas Existentes/black ops/Black Ops (2025-2026)',
-    'cloudflare_account_id': 'REMOVED_ACCOUNT_ID',
+    'cloudflare_account_id': os.getenv('CLOUDFLARE_ACCOUNT_ID', ''),
     'cloudflare_api_token': os.getenv('CLOUDFLARE_API_TOKEN', 'SUBSTITUA_AQUI'),
     'download_dir': '/root/migration/downloads',
     'hls_output_dir': '/root/migration/hls',
