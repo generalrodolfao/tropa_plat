@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Shield, LayoutDashboard, BookOpen, Trophy, Briefcase, FileText, Route, Library, Swords, LogOut, Menu, Settings } from "lucide-react"
+import { Shield, LayoutDashboard, BookOpen, Code2, Trophy, Briefcase, FileText, Route, Library, Swords, LogOut, Menu, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/store/authStore"
 
 const NAV = [
   { href: "/app", icon: LayoutDashboard, label: "Painel de bordo" },
   { href: "/app/trilhas", icon: BookOpen, label: "Trilhas" },
+  { href: "/app/projetos", icon: Code2, label: "Projetos" },
   { href: "/app/biblioteca", icon: Library, label: "Biblioteca" },
   { href: "/app/hackathons", icon: Trophy, label: "Hackathons" },
   { href: "/app/vagas", icon: Briefcase, label: "Vagas" },

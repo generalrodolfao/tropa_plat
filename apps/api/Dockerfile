@@ -19,6 +19,7 @@ FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=4000
 ENV HOSTNAME=0.0.0.0
+RUN apk add --no-cache postgresql16-client || apk add --no-cache postgresql-client
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist

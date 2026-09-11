@@ -110,6 +110,49 @@ export const hackathonsApi = {
     const res = await fetch(`${API_BASE}/hackathons`, { headers: getAuthHeaders() })
     return handle(res)
   },
+
+  myTeams: async (): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/hackathons/me/teams`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  createTeam: async (hackathonId: string, name: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/hackathons/teams`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ hackathonId, name }),
+    })
+    return handle(res)
+  },
+
+  joinTeam: async (teamId: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/hackathons/join`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ teamId }),
+    })
+    return handle(res)
+  },
+
+  submit: async (data: {
+    hackathonId: string
+    title: string
+    repoUrl?: string
+    demoUrl?: string
+    description?: string
+  }): Promise<any> => {
+    const res = await fetch(`${API_BASE}/hackathons/submit`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  submissions: async (hackathonId: string): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/hackathons/${hackathonId}/submissions`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
 }
 
 // Jobs = vagas — GET /v1/jobs
@@ -233,6 +276,52 @@ export const bibliotecaApi = {
 export const pdiApi = {
   getJourney: async (): Promise<PdiJourney> => {
     const res = await fetch(`${API_BASE}/pdi/journey`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+}
+
+// Projetos — GET/POST /v1/projects
+export const projectsApi = {
+  list: async (): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/projects`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  mySubmissions: async (): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/projects/my-submissions`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  submit: async (data: {
+    projectId: string
+    submissionUrl: string
+    description?: string
+    attachments?: string[]
+  }): Promise<{ ok: boolean; submissionId: string }> => {
+    const res = await fetch(`${API_BASE}/projects/submit`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  pending: async (): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/projects/submissions/pending`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  grade: async (data: {
+    submissionId: string
+    score: number
+    feedback: string
+    criteriaScores?: Record<string, number>
+  }): Promise<any> => {
+    const res = await fetch(`${API_BASE}/projects/grade`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
     return handle(res)
   },
 }

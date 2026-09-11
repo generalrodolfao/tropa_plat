@@ -1,0 +1,9 @@
+[Unit]
+Description=Tropa dos Dados - monitor de VPS (disco/certificado/nginx)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/tropa/monitor.env
+ExecStart=/usr/local/bin/tropa-monitor.sh
