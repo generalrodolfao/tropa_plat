@@ -35,14 +35,18 @@ export class DatabaseBackupJob {
 
     try {
       await mkdir(this.dir, { recursive: true });
-      await execAsync(`pg_dump "$BACKUP_DB_URL" | gzip > "${out}"`, {
-        env: { ...process.env, BACKUP_DB_URL: cleanUrl },
-        shell: '/bin/sh',
-        timeout: 30 * 60 * 1000,
-      });
+      // pipefail garante que uma falha do pg_dump não seja mascarada pelo gzip
+      await execAsync(
+        `set -o pipefail; pg_dump "$BACKUP_DB_URL" | gzip > "${out}"`,
+        {
+          env: { ...process.env, BACKUP_DB_URL: cleanUrl },
+          shell: '/bin/bash',
+          timeout: 30 * 60 * 1000,
+        },
+      );
 
       const { size } = await stat(out);
-      if (size === 0) throw new Error('arquivo de backup vazio');
+      if (size < 100) throw new Error(`arquivo suspeito (${size} bytes)`);
 
       this.logger.log(`[backup] OK: ${out} (${Math.round(size / 1024)} KB)`);
       await this.prune();
