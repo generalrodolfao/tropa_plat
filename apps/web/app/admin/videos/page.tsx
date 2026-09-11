@@ -31,7 +31,7 @@ export default function AdminVideosPage() {
   async function loadVideos() {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/v1/video/admin/all`, {
+      const res = await fetch(`${API_BASE}/video/admin/all`, {
         headers: getAuthHeaders(),
       })
       if (res.ok) {
@@ -48,7 +48,7 @@ export default function AdminVideosPage() {
   async function handleUpload(lessonId: string) {
     setUploading(true)
     try {
-      const res = await fetch(`${API_BASE}/v1/video/upload`, {
+      const res = await fetch(`${API_BASE}/video/upload`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

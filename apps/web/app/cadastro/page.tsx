@@ -22,7 +22,7 @@ export default function CadastroPage() {
     clearError()
     try {
       await register({ step: "step1", name, email, password })
-      router.push("/app")
+      router.push("/onboarding")
     } catch {}
   }
 

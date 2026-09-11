@@ -352,6 +352,38 @@ export const aiApi = {
     })
     return handle(res)
   },
+
+  parseCv: async (text: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/ai/cv/parse`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ text }),
+    })
+    return handle(res)
+  },
+
+  generateDiagnostic: async (skills?: string[], questionsPerSkill = 3): Promise<any> => {
+    const res = await fetch(`${API_BASE}/ai/onboarding/diagnostic`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ skills, questionsPerSkill }),
+    })
+    return handle(res)
+  },
+
+  generatePdi: async (data: {
+    objective: string
+    currentSkills: string
+    learningStyle?: string
+    hoursPerWeek?: number
+  }): Promise<any> => {
+    const res = await fetch(`${API_BASE}/ai/pdi/generate`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
 }
 
 // Progress — POST /v1/progress/start|complete e GET /v1/progress/course/:id

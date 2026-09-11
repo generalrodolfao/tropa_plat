@@ -49,6 +49,7 @@ type AuthState = RegisterState & {
   logout: () => Promise<void>
   refreshToken: () => Promise<void>
   hydrate: () => Promise<void>
+  setUser: (user: User) => void
   clearError: () => void
 }
 
@@ -80,6 +81,8 @@ export const useAuthStore = create<AuthState>()(
       isRegistered: false,
 
       clearError: () => set({ error: null }),
+
+      setUser: (user: User) => set({ user }),
 
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null })

@@ -4,6 +4,7 @@ import {
   IsOptional,
   IsEnum,
   IsNumber,
+  IsArray,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -60,4 +61,20 @@ export class GenerateQuizItemsDto {
   @ApiProperty({ description: 'Quantidade de itens' })
   @IsNumber()
   count: number;
+}
+
+export class DiagnosticQuizDto {
+  @ApiPropertyOptional({
+    description: 'Skills a avaliar (default: núcleo de dados)',
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  skills?: string[];
+
+  @ApiPropertyOptional({ description: 'Perguntas por skill', example: 3 })
+  @IsOptional()
+  @IsNumber()
+  questionsPerSkill?: number;
 }

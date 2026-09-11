@@ -31,6 +31,8 @@ export type PublicUser = {
   timezone: string;
   status: string;
   roles: string[];
+  careerGoal: string | null;
+  learningStyle: string | null;
   createdAt?: Date;
 };
 
@@ -386,6 +388,8 @@ export class AuthService {
       timezone: user.profile?.timezone ?? 'America/Sao_Paulo',
       status: user.status,
       roles: user.roles.map((r) => r.role),
+      careerGoal: user.profile?.careerGoal ?? null,
+      learningStyle: user.profile?.learningStyle ?? null,
       createdAt: user.createdAt,
     };
   }

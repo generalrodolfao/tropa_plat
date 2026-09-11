@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Play, Swords, ChevronLeft, CheckCircle2, Captions, Clock, FileText, ChevronRight } from "lucide-react"
 import { progressApi, trailsApi } from "@/lib/api/service"
+import { API_BASE, getAuthHeaders } from "@/lib/api/client"
 import { VideoPlayer } from "@/components/video-player"
 import { SandboxEditor } from "@/components/sandbox/sandbox-editor"
 import { QuizPlayer } from "@/components/quiz-player"
@@ -58,8 +59,8 @@ export default function LessonPage() {
             // Tentar buscar da API
             try {
               const vidRes = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/v1/video/lesson/${lessonId}`,
-                { headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` } }
+                `${API_BASE}/video/lesson/${lessonId}`,
+                { headers: getAuthHeaders() }
               )
               if (vidRes.ok) {
                 const vid = await vidRes.json()

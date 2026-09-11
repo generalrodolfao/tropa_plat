@@ -25,7 +25,8 @@ export function StepGoal({ data, onUpdate }: StepGoalProps) {
 
   const handleChange = (value: string) => {
     setGoal(value)
-    onUpdate({ goal: value })
+    const selected = GOALS.find((g) => g.id === value)
+    onUpdate({ goal: value, goalLabel: selected?.label ?? value })
   }
 
   const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

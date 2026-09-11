@@ -4,6 +4,7 @@ import { AIService } from './ai.service';
 import {
   CvParseDto,
   CvReviewDto,
+  DiagnosticQuizDto,
   GeneratePdiDto,
   GenerateQuizItemsDto,
 } from './dto/ai.dto';
@@ -41,6 +42,17 @@ export class AIController {
   @ApiOperation({ summary: 'Gerar PDI personalizado via IA' })
   async generatePDI(@Body() dto: GeneratePdiDto) {
     return this.aiService.generatePDI(dto);
+  }
+
+  @Post('onboarding/diagnostic')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Gerar quiz diagnóstico de nivelamento (onboarding)',
+  })
+  async diagnostic(@Body() dto: DiagnosticQuizDto) {
+    return this.aiService.generateDiagnosticQuiz(dto);
   }
 
   @Post('quiz/generate')

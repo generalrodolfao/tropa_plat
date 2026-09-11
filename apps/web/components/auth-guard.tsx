@@ -18,6 +18,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       const hasToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
       if (!user && !tokens && !hasToken) {
         router.replace("/login")
+        return
+      }
+      // usuário autenticado sem onboarding concluído vai para o wizard
+      if (user && !user.careerGoal && !user.roles?.includes("admin")) {
+        router.replace("/onboarding")
       }
     }
   }, [checking, isHydrated, user, tokens, router])

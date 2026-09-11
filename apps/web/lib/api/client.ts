@@ -23,6 +23,8 @@ export interface User {
   timezone?: string
   status?: string
   roles?: string[]
+  careerGoal?: string | null
+  learningStyle?: string | null
   createdAt?: string
 }
 

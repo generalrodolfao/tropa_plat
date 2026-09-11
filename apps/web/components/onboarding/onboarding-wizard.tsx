@@ -10,7 +10,8 @@ import { StepCV } from "./step-cv"
 import { StepLearningStyle } from "./step-learning-style"
 import { StepPDI } from "./step-pdi"
 import { StepFirstMission } from "./step-first-mission"
-import { API_BASE, getAuthHeaders } from "@/lib/api/client"
+import { authApi } from "@/lib/api/service"
+import { useAuthStore } from "@/store/authStore"
 
 const STEPS = [
   { id: "goal", title: "Seu Objetivo", description: "Para onde você quer ir?" },
@@ -25,6 +26,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   const [currentStep, setCurrentStep] = useState(0)
   const [data, setData] = useState<any>({})
   const [loading, setLoading] = useState(false)
+  const setUser = useAuthStore((s) => s.setUser)
 
   const updateData = useCallback((stepData: any) => {
     setData((prev: any) => ({ ...prev, ...stepData }))
@@ -33,24 +35,23 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   const handleNext = async () => {
     if (currentStep < STEPS.length - 1) {
       setCurrentStep((prev) => prev + 1)
-    } else {
-      // Complete onboarding
-      setLoading(true)
-      try {
-        await fetch(`${API_BASE}/v1/users/onboarding/complete`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify(data),
-        })
-        onComplete()
-      } catch (error) {
-        console.error("Failed to complete onboarding:", error)
-      } finally {
-        setLoading(false)
-      }
+      return
+    }
+
+    // Completa onboarding: persiste objetivo + estilo no perfil
+    setLoading(true)
+    try {
+      const updated = await authApi.updateMe({
+        careerGoal: data.goalLabel ?? data.goal,
+        learningStyle: data.learningStyle,
+        ...(data.goalDescription ? { bio: data.goalDescription } : {}),
+      })
+      setUser(updated)
+    } catch (error) {
+      console.error("Falha ao salvar onboarding:", error)
+    } finally {
+      setLoading(false)
+      onComplete()
     }
   }
 

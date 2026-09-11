@@ -4,6 +4,7 @@ import { LLMAdapter } from './llm.adapter';
 import {
   CvParseDto,
   CvReviewDto,
+  DiagnosticQuizDto,
   GeneratePdiDto,
   GenerateQuizItemsDto,
 } from './dto/ai.dto';
@@ -412,5 +413,93 @@ Inclua explicação para cada resposta.`,
     );
 
     return (result as any).items ?? [];
+  }
+
+  // ---------- Onboarding: Quiz diagnóstico multi-skill ----------
+
+  async generateDiagnosticQuiz(dto: DiagnosticQuizDto): Promise<{
+    skills: Array<{
+      skillId: string;
+      questions: Array<{
+        prompt: string;
+        options: string[];
+        correctIndex: number;
+        difficulty: number;
+        explanation: string;
+      }>;
+    }>;
+  }> {
+    const skills =
+      dto.skills && dto.skills.length > 0
+        ? dto.skills
+        : ['sql', 'python', 'statistics', 'excel'];
+    const perSkill = Math.min(Math.max(dto.questionsPerSkill ?? 3, 1), 5);
+
+    const schema = {
+      type: 'object',
+      properties: {
+        skills: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              skillId: { type: 'string' },
+              questions: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    prompt: { type: 'string' },
+                    options: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      minItems: 4,
+                      maxItems: 4,
+                    },
+                    correctIndex: { type: 'number', minimum: 0, maximum: 3 },
+                    difficulty: { type: 'number', minimum: 1, maximum: 5 },
+                    explanation: { type: 'string' },
+                  },
+                  required: [
+                    'prompt',
+                    'options',
+                    'correctIndex',
+                    'difficulty',
+                    'explanation',
+                  ],
+                },
+              },
+            },
+            required: ['skillId', 'questions'],
+          },
+        },
+      },
+      required: ['skills'],
+    };
+
+    const wanted = skills
+      .map((s) => `- ${s} (${perSkill} perguntas)`)
+      .join('\n');
+
+    const result = await this.llm.structuredOutput<any>(
+      [
+        {
+          role: 'system',
+          content: `Você monta um quiz diagnóstico de nivelamento em dados.
+Gere exatamente ${perSkill} perguntas de múltipla escolha (4 opções) para cada skill listada.
+Comece pelo nível mais básico e suba a dificuldade (1 a 5).
+Use exatamente os skillId fornecidos.
+Inclua a explicação da resposta correta.`,
+        },
+        {
+          role: 'user',
+          content: `Skills a avaliar:\n${wanted}`,
+        },
+      ],
+      schema,
+      'gpt-4o-mini',
+    );
+
+    return { skills: result?.skills ?? [] };
   }
 }
