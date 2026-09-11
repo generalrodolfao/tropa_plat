@@ -278,6 +278,30 @@ export const pdiApi = {
     const res = await fetch(`${API_BASE}/pdi/journey`, { headers: getAuthHeaders() })
     return handle(res)
   },
+  getPlan: async (): Promise<any> => {
+    const res = await fetch(`${API_BASE}/pdi/plan`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+  savePlan: async (data: {
+    objective?: string
+    totalWeeks?: number
+    weeklyHours?: number
+    milestones: Array<{
+      title: string
+      description?: string
+      skills?: string[]
+      estimatedWeeks?: number
+      courses?: Array<{ title: string; reason?: string }>
+      projects?: Array<{ title: string; description?: string }>
+    }>
+  }): Promise<any> => {
+    const res = await fetch(`${API_BASE}/pdi/plan`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
 }
 
 // Projetos — GET/POST /v1/projects
@@ -338,6 +362,68 @@ export const ligasApi = {
 export const gamificationApi = {
   getSummary: async () => {
     const res = await fetch(`${API_BASE}/gamification/summary`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+  getBadges: async (): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/gamification/badges`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+  getRanks: async (): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/gamification/ranks`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+}
+
+// Notificações — /v1/notifications
+export const notificationsApi = {
+  list: async (limit = 20): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/notifications?limit=${limit}`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+  unreadCount: async (): Promise<{ count: number }> => {
+    const res = await fetch(`${API_BASE}/notifications/unread-count`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+  markRead: async (id: string) => {
+    const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+    })
+    return handle(res)
+  },
+  markAllRead: async () => {
+    const res = await fetch(`${API_BASE}/notifications/read-all`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+    })
+    return handle(res)
+  },
+}
+
+// Certificados — /v1/certificates
+export const certificatesApi = {
+  my: async (): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/certificates/my`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+  verify: async (serial: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/certificates/verify/${encodeURIComponent(serial)}`)
+    return handle(res)
+  },
+}
+
+// CV persistido — /v1/cv
+export const cvApi = {
+  get: async (): Promise<{ cv: any; review: any; text: string | null }> => {
+    const res = await fetch(`${API_BASE}/cv`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+  save: async (data: { text: string; parsed?: unknown; review?: unknown }) => {
+    const res = await fetch(`${API_BASE}/cv`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
     return handle(res)
   },
 }
@@ -429,6 +515,51 @@ export const quizzesApi = {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify({ answers }),
+    })
+    return handle(res)
+  },
+
+  adminList: async (): Promise<{ items: any[]; total: number }> => {
+    const res = await fetch(`${API_BASE}/quizzes/admin/all`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  createQuiz: async (data: {
+    lessonId: string
+    passingScore?: number
+    xpAward?: number
+    maxAttempts?: number
+  }): Promise<any> => {
+    const res = await fetch(`${API_BASE}/quizzes/admin`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  addQuestion: async (
+    quizId: string,
+    data: {
+      prompt: string
+      options: string[]
+      correctIndex: number
+      difficulty?: number
+      explanation?: string
+    },
+  ): Promise<any> => {
+    const res = await fetch(`${API_BASE}/quizzes/admin/${quizId}/questions`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  deleteQuestion: async (questionId: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/quizzes/admin/questions/${questionId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders(),
     })
     return handle(res)
   },
@@ -528,6 +659,35 @@ export const adminApi = {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  // Hackathons (admin)
+  listHackathons: async (): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/hackathons/admin/all`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  createHackathon: async (data: {
+    title: string
+    theme?: string
+    prizePoolCents?: number
+    maxTeamSize?: number
+  }): Promise<any> => {
+    const res = await fetch(`${API_BASE}/hackathons/admin`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  updateHackathonStatus: async (id: string, status: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/hackathons/admin/${id}/status`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ status }),
     })
     return handle(res)
   },

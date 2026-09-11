@@ -2,9 +2,10 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Shield, LayoutDashboard, BookOpen, Code2, Trophy, Briefcase, FileText, Route, Library, Swords, LogOut, Menu, Settings } from "lucide-react"
+import { Shield, LayoutDashboard, BookOpen, Code2, Trophy, Briefcase, FileText, Route, Library, Award, User, Swords, LogOut, Menu, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/store/authStore"
+import { NotificationsBell } from "@/components/notifications-bell"
 
 const NAV = [
   { href: "/app", icon: LayoutDashboard, label: "Painel de bordo" },
@@ -15,7 +16,9 @@ const NAV = [
   { href: "/app/vagas", icon: Briefcase, label: "Vagas" },
   { href: "/app/pdi", icon: Route, label: "Meu PDI" },
   { href: "/app/cv", icon: FileText, label: "Meu CV" },
+  { href: "/app/certificados", icon: Award, label: "Certificados" },
   { href: "/app/ligas", icon: Swords, label: "Ligas" },
+  { href: "/app/perfil", icon: User, label: "Perfil" },
 ]
 
 export function AppSidebar() {
@@ -37,12 +40,13 @@ export function AppSidebar() {
         <div className="grid size-9 place-items-center rounded-md border border-primary/40 bg-primary/10">
           <Shield className="size-5 text-primary" />
         </div>
-        <div className="leading-none">
+        <div className="min-w-0 flex-1 leading-none">
           <span className="font-display text-base font-bold tracking-wide text-foreground">
             TROPA<span className="text-primary">DOS</span>DADOS
           </span>
           <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">sala de operações</span>
         </div>
+        <NotificationsBell />
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
@@ -99,9 +103,12 @@ export function MobileBar() {
           TROPA<span className="text-primary">DOS</span>DADOS
         </span>
       </div>
-      <Button variant="outline" size="icon" aria-label="Abrir menu">
-        <Menu className="size-4" />
-      </Button>
+      <div className="flex items-center gap-2">
+        <NotificationsBell />
+        <Button variant="outline" size="icon" aria-label="Abrir menu">
+          <Menu className="size-4" />
+        </Button>
+      </div>
     </div>
   )
 }

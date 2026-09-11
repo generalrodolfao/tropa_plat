@@ -55,3 +55,58 @@ export class UpdateSkillScoreDto {
   @IsString()
   source?: string;
 }
+
+export class PdiMilestoneDto {
+  @ApiProperty()
+  @IsString()
+  title: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  skills?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  estimatedWeeks?: number;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsOptional()
+  @IsArray()
+  courses?: Array<{ title: string; reason?: string }>;
+
+  @ApiPropertyOptional({ type: [Object] })
+  @IsOptional()
+  @IsArray()
+  projects?: Array<{ title: string; description?: string }>;
+}
+
+export class SavePdiPlanDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  objective?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  totalWeeks?: number;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  weeklyHours?: number;
+
+  @ApiProperty({ type: [PdiMilestoneDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PdiMilestoneDto)
+  milestones: PdiMilestoneDto[];
+}

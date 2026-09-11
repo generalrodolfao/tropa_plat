@@ -9,7 +9,11 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PDIService } from './pdi.service';
-import { SubmitQuizDto, UpdateSkillScoreDto } from './dto/pdi.dto';
+import {
+  SubmitQuizDto,
+  UpdateSkillScoreDto,
+  SavePdiPlanDto,
+} from './dto/pdi.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 
@@ -40,6 +44,22 @@ export class PDIController {
   @ApiOperation({ summary: 'Obter grafo de jornada do usuário' })
   async getJourneyGraph(@CurrentUser() user: { userId: string }) {
     return this.pdiService.getJourneyGraph(user.userId);
+  }
+
+  @Get('plan')
+  @ApiOperation({ summary: 'Obter PDI ativo do usuário' })
+  async getPlan(@CurrentUser() user: { userId: string }) {
+    return this.pdiService.getPlan(user.userId);
+  }
+
+  @Post('plan')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Salvar/atualizar PDI do usuário' })
+  async savePlan(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: SavePdiPlanDto,
+  ) {
+    return this.pdiService.savePlan(user.userId, dto);
   }
 
   @Post('skills/:skillId/update')

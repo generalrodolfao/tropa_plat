@@ -8,10 +8,8 @@ import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { FileText, RefreshCw, AlertTriangle, CheckCircle2, Lightbulb, ScanSearch, Loader2, Sparkles, UploadCloud } from "lucide-react"
-import { aiApi } from "@/lib/api/service"
+import { aiApi, cvApi } from "@/lib/api/service"
 import type { CvReview } from "@/lib/api/client"
-
-const STORAGE_KEY = "cv_review"
 
 function scoreColor(s: number) {
   if (s >= 85) return "text-accent"
@@ -29,15 +27,28 @@ export default function CvPage() {
   const [editing, setEditing] = useState(false)
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (!raw) return
-      const parsed = JSON.parse(raw) as { cvText?: string; targetRole?: string; review?: CvReview }
-      if (parsed.cvText) setCvText(parsed.cvText)
-      if (parsed.targetRole) setTargetRole(parsed.targetRole)
-      if (parsed.review) setReview(parsed.review)
-    } catch {
-      // ignora cache corrompido
+    let active = true
+    cvApi
+      .get()
+      .then((data) => {
+        if (!active) return
+        if (data.text) setCvText(data.text)
+        if (data.review) {
+          setReview({
+            overallScore: data.review.overallScore,
+            summary: data.review.summaryMd ?? "",
+            sections: data.review.sections ?? [],
+            atsScore: data.review.atsScore,
+            strengths: data.review.strengths ?? [],
+            improvements: data.review.improvements ?? [],
+          })
+        }
+      })
+      .catch(() => {
+        // sem CV salvo — segue vazio
+      })
+    return () => {
+      active = false
     }
   }, [])
 
@@ -52,7 +63,8 @@ export default function CvPage() {
       const result = await aiApi.reviewCv(cvText, targetRole)
       setReview(result)
       setEditing(false)
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ cvText, targetRole, review: result }))
+      // persiste no backend (não bloqueia a UI)
+      cvApi.save({ text: cvText, review: result }).catch(() => {})
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao analisar o CV.")
     } finally {

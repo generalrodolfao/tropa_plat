@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Loader2, AlertTriangle, RefreshCw } from "lucide-react"
-import { aiApi } from "@/lib/api/service"
+import { aiApi, pdiApi } from "@/lib/api/service"
 
 interface Milestone {
   title: string
@@ -53,6 +53,25 @@ export function StepPDI({ data, onUpdate }: StepPDIProps) {
       if (!result?.milestones?.length) throw new Error("Plano vazio retornado pela IA")
       setPdi(result)
       onUpdate({ pdi: result })
+
+      // persiste o plano para aparecer em /app/pdi
+      try {
+        await pdiApi.savePlan({
+          objective: data.goalLabel || data.goal || "Analista de Dados",
+          totalWeeks: result.totalWeeks,
+          weeklyHours: result.weeklyHours,
+          milestones: result.milestones.map((m: Milestone) => ({
+            title: m.title,
+            description: m.description,
+            skills: m.skills,
+            estimatedWeeks: m.estimatedWeeks,
+            courses: m.courses,
+            projects: m.projects,
+          })),
+        })
+      } catch {
+        // não bloqueia o onboarding se a persistência falhar
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao gerar o PDI.")
     } finally {

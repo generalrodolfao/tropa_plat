@@ -11,17 +11,16 @@ import type { PdiJourney } from "@/lib/api/client";
 
 export default function PdiPage() {
   const [journey, setJourney] = useState<PdiJourney | null>(null);
+  const [plan, setPlan] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    pdiApi
-      .getJourney()
-      .then((data) => {
-        if (active) setJourney(data);
-      })
-      .catch(() => {
-        if (active) setJourney(null);
+    Promise.allSettled([pdiApi.getJourney(), pdiApi.getPlan()])
+      .then(([j, p]) => {
+        if (!active) return;
+        if (j.status === "fulfilled") setJourney(j.value);
+        if (p.status === "fulfilled") setPlan(p.value);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -46,15 +45,29 @@ export default function PdiPage() {
   const done = skills.filter((s) => s.level >= s.target).length;
   const totalProgress = journey ? Math.round((journey.overall.averageLevel / 5) * 100) : 0;
 
-  // Rota derivada do gap de skills: satisfeitas = concluído, maior gap = em andamento
+  // Preferência: plano salvo (IA); fallback: rota derivada do gap de skills
   const route = useMemo(() => {
+    if (plan?.nodes?.length) {
+      return plan.nodes.map((n: any) => ({
+        id: n.id,
+        name: n.title,
+        level: 0,
+        target: 0,
+        gap: 0,
+        fromPlan: true,
+        description: n.recommendedContent?.description ?? "",
+        status: n.status === "done" ? ("done" as const) : n.status === "in_progress" ? ("in_progress" as const) : ("todo" as const),
+      }));
+    }
     const sorted = [...skills].sort((a, b) => b.gap - a.gap);
     const inProgressId = sorted.find((s) => s.gap > 0)?.id;
     return sorted.map((s) => ({
       ...s,
+      fromPlan: false,
+      description: "",
       status: s.gap === 0 ? ("done" as const) : s.id === inProgressId ? ("in_progress" as const) : ("todo" as const),
     }));
-  }, [skills]);
+  }, [skills, plan]);
 
   if (loading) {
     return <div className="p-8 text-center text-sm text-muted-foreground">Carregando PDI...</div>;
@@ -104,10 +117,10 @@ export default function PdiPage() {
             <Card className="hud-corners border-border/70 bg-card/70">
               <CardContent className="p-5">
                 <div className="mb-5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-                  Rota de evolução · priorizada pelo gap
+                  {plan?.nodes?.length ? "Plano salvo · gerado pela IA" : "Rota de evolução · priorizada pelo gap"}
                 </div>
                 <ol className="relative space-y-4 border-l border-border pl-6">
-                  {route.map((n) => (
+                  {route.map((n: any) => (
                     <li key={n.id} className="relative">
                       <span
                         className={`absolute -left-6 top-0 grid size-5 -translate-x-1/2 place-items-center rounded-full border ${
@@ -143,15 +156,16 @@ export default function PdiPage() {
                             <Badge className="gap-1 px-2 py-0 text-[10px]">em andamento</Badge>
                           ) : (
                             <span className="flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
-                              <Clock className="size-3" /> faltam {n.gap} nível(is)
+                              <Clock className="size-3" /> {n.fromPlan ? "próximo passo" : `faltam ${n.gap} nível(is)`}
                             </span>
                           )}
                         </div>
                         <p className="mt-1 text-sm text-muted-foreground">
-                          Nível {n.level} de {n.target}
-                          {n.gap > 0 ? ` · ${n.gap} nível(is) para a meta` : " · meta atingida"}
+                          {n.fromPlan
+                            ? n.description || "Milestone do seu plano personalizado"
+                            : `Nível ${n.level} de ${n.target}${n.gap > 0 ? ` · ${n.gap} nível(is) para a meta` : " · meta atingida"}`}
                         </p>
-                        {n.status !== "done" && (
+                        {n.status !== "done" && !n.fromPlan && (
                           <div className="mt-3 flex items-center justify-between">
                             <span className="font-mono text-[11px] text-primary">+{n.gap * 100} XP</span>
                             {n.status === "in_progress" && (

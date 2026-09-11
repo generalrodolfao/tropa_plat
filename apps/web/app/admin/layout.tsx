@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Shield, LayoutDashboard, BookOpen, Users, CreditCard, Video, ArrowLeft } from "lucide-react"
+import { Shield, LayoutDashboard, BookOpen, Users, CreditCard, Video, Brain, Trophy, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AuthGuard } from "@/components/auth-guard"
 import { useAuthStore } from "@/store/authStore"
@@ -10,6 +10,8 @@ import { useAuthStore } from "@/store/authStore"
 const ADMIN_NAV = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/cursos", icon: BookOpen, label: "Cursos" },
+  { href: "/admin/quizzes", icon: Brain, label: "Quizzes" },
+  { href: "/admin/hackathons", icon: Trophy, label: "Hackathons" },
   { href: "/admin/usuarios", icon: Users, label: "Usuários" },
   { href: "/admin/videos", icon: Video, label: "Vídeos" },
   { href: "/admin/pagamentos", icon: CreditCard, label: "Pagamentos" },

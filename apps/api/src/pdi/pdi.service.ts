@@ -1,6 +1,10 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { SubmitQuizDto, UpdateSkillScoreDto } from './dto/pdi.dto';
+import {
+  SubmitQuizDto,
+  UpdateSkillScoreDto,
+  SavePdiPlanDto,
+} from './dto/pdi.dto';
 
 @Injectable()
 export class PDIService {
@@ -190,6 +194,50 @@ export class PDIService {
         averageLevel: Math.round(avgLevel * 10) / 10,
       },
     };
+  }
+
+  // ---------- PDI plan (persistência) ----------
+
+  async getPlan(userId: string) {
+    return this.prisma.pdiPlan.findFirst({
+      where: { userId, status: 'active' },
+      include: { nodes: { orderBy: { orderIndex: 'asc' } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async savePlan(userId: string, dto: SavePdiPlanDto) {
+    await this.prisma.pdiPlan.updateMany({
+      where: { userId, status: 'active' },
+      data: { status: 'archived' },
+    });
+
+    return this.prisma.pdiPlan.create({
+      data: {
+        userId,
+        status: 'active',
+        objective: dto.objective,
+        source: {
+          totalWeeks: dto.totalWeeks,
+          weeklyHours: dto.weeklyHours,
+        } as any,
+        nodes: {
+          create: dto.milestones.map((m, index) => ({
+            type: 'milestone',
+            title: m.title,
+            orderIndex: index,
+            estimatedWeeks: m.estimatedWeeks,
+            recommendedContent: {
+              description: m.description,
+              skills: m.skills ?? [],
+              courses: m.courses ?? [],
+              projects: m.projects ?? [],
+            } as any,
+          })),
+        },
+      },
+      include: { nodes: { orderBy: { orderIndex: 'asc' } } },
+    });
   }
 
   // ---------- Update skill score (manual/admin) ----------

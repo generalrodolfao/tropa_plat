@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { randomUUID } from 'crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
+import { EmailService } from '../email/email.module';
 import {
   LoginDto,
   LogoutDto,
@@ -44,6 +45,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
+    private readonly email: EmailService,
   ) {}
 
   // ---------- Registro ----------
@@ -272,6 +274,8 @@ export class AuthService {
     this.logger.log(
       `Password reset token for ${email}: ${rawToken} (expires ${expiresAt.toISOString()})`,
     );
+
+    await this.email.sendPasswordReset(email, rawToken);
 
     // em dev, retorna token para facilitar testes; em prod, enviar por email
     const isDev =

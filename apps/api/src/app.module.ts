@@ -23,6 +23,8 @@ import { PDIModule } from './pdi/pdi.module';
 import { ProjectsModule } from './projects/projects.module';
 import { B2BModule } from './b2b/b2b.module';
 import { CertificatesModule } from './certificates/certificates.module';
+import { CvModule } from './cv/cv.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { CertificatesModule } from './certificates/certificates.module';
     ProjectsModule,
     B2BModule,
     CertificatesModule,
+    CvModule,
+    EmailModule,
   ],
 })
 export class AppModule {}
