@@ -6,10 +6,11 @@ import { useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { Play, Brain, Swords, ChevronLeft, CheckCircle2, Bookmark, Captions, Clock, FileText, ChevronRight } from "lucide-react"
+import { Play, Swords, ChevronLeft, CheckCircle2, Captions, Clock, FileText, ChevronRight } from "lucide-react"
 import { progressApi, trailsApi } from "@/lib/api/service"
 import { VideoPlayer } from "@/components/video-player"
 import { SandboxEditor } from "@/components/sandbox/sandbox-editor"
+import { QuizPlayer } from "@/components/quiz-player"
 
 export default function LessonPage() {
   const params = useParams<{ slug: string; lesson: string }>()
@@ -149,11 +150,13 @@ export default function LessonPage() {
           <LessonContent
             type={lesson.type}
             title={lesson.title}
+            lessonId={lessonId}
             hasVideo={hasVideo}
             videoData={videoData}
             content={content}
             onProgress={handleVideoProgress}
             onEnded={handleVideoEnded}
+            onQuizPassed={onComplete}
           />
           <div className="hud-corners flex items-center justify-between rounded-xl border border-primary/40 bg-primary/5 p-4">
             <div>
@@ -231,14 +234,16 @@ export default function LessonPage() {
   )
 }
 
-function LessonContent({ type, title, hasVideo, videoData, content, onProgress, onEnded }: {
+function LessonContent({ type, title, lessonId, hasVideo, videoData, content, onProgress, onEnded, onQuizPassed }: {
   type: string
   title: string
+  lessonId: string
   hasVideo?: boolean
   videoData?: any
   content?: any
   onProgress?: (seconds: number) => void
   onEnded?: () => void
+  onQuizPassed?: () => void
 }) {
   if (type === "sandbox") {
     return (
@@ -249,9 +254,9 @@ function LessonContent({ type, title, hasVideo, videoData, content, onProgress, 
       />
     )
   }
-  if (type === "quiz") return <QuizMock />
-  if (type === "project") return <ProjectMock />
-  if (type === "article") return <ArticleMock title={title} />
+  if (type === "quiz") return <QuizPlayer lessonId={lessonId} onPassed={() => onQuizPassed?.()} />
+  if (type === "project") return <ProjectCallout />
+  if (type === "article") return <ArticleContent title={title} content={content} />
 
   // Video lesson - check for video URL from multiple sources
   const videoUrl = videoData?.hlsUrl || content?.streamUrl || content?.videoUrl
@@ -305,40 +310,40 @@ function VideoMock({ title }: { title: string }) {
   )
 }
 
-function QuizMock() {
-  return (
-    <Card className="hud-corners overflow-hidden border-border/70 bg-card/70">
-      <CardContent className="p-8 text-center">
-        <Brain className="mx-auto size-10 text-sky-400" />
-        <p className="mt-3 text-sm text-muted-foreground">Quiz adaptativo (IRT) — em implementação. Por enquanto use &ldquo;Concluir missão&rdquo; para simular aprovação e ganhar XP.</p>
-      </CardContent>
-    </Card>
-  )
-}
-
-function ProjectMock() {
+function ProjectCallout() {
   return (
     <Card className="hud-corners overflow-hidden border-border/70 bg-card/70">
       <CardContent className="p-8 text-center">
         <Swords className="mx-auto size-10 text-amber-400" />
-        <p className="mt-3 text-sm text-muted-foreground">Projeto com correção auto/mentor — submissão via R2 + grading.</p>
-        <Button className="mt-4 gap-2"><Bookmark className="size-4" /> Submeter projeto</Button>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Esta missão é um projeto prático com correção. Envie sua entrega na área de Projetos.
+        </p>
+        <Button asChild className="mt-4 gap-2">
+          <Link href="/app/projetos">
+            Ir para Projetos <ChevronRight className="size-4" />
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   )
 }
 
-function ArticleMock({ title }: { title: string }) {
+function ArticleContent({ title, content }: { title: string; content?: any }) {
+  const body: string = content?.body ?? content?.text ?? content?.markdown ?? ""
   return (
     <Card className="hud-corners overflow-hidden border-border/70 bg-card/70">
-      <CardContent className="p-5">
-        <div className="flex items-center gap-2 mb-4">
+      <CardContent className="p-6">
+        <div className="mb-4 flex items-center gap-2">
           <FileText className="size-4 text-muted-foreground" />
           <span className="font-display text-lg font-semibold text-foreground">{title}</span>
         </div>
-        <div className="prose prose-sm prose-invert max-w-none text-muted-foreground">
-          <p>Conteúdo do artigo será carregado do campo <code>content</code> da aula.</p>
-        </div>
+        {body ? (
+          <div className="prose prose-sm prose-invert max-w-none whitespace-pre-wrap text-muted-foreground">
+            {body}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Conteúdo do artigo ainda não cadastrado.</p>
+        )}
       </CardContent>
     </Card>
   )

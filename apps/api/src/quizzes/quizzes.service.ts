@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreateQuizDto,
@@ -31,7 +36,7 @@ export class QuizzesService {
       },
     });
 
-    if (!quiz) throw new Error('QUIZ_NOT_FOUND');
+    if (!quiz) throw new NotFoundException('QUIZ_NOT_FOUND');
 
     return {
       id: quiz.id,
@@ -69,7 +74,7 @@ export class QuizzesService {
       include: { questions: true },
     });
 
-    if (!quiz) throw new Error('QUIZ_NOT_FOUND');
+    if (!quiz) throw new NotFoundException('QUIZ_NOT_FOUND');
 
     // Verificar tentativas anteriores
     const previousAttempts = await this.prisma.quizAttempt.count({
@@ -77,7 +82,7 @@ export class QuizzesService {
     });
 
     if (previousAttempts >= quiz.maxAttempts) {
-      throw new Error('MAX_ATTEMPTS_REACHED');
+      throw new BadRequestException('MAX_ATTEMPTS_REACHED');
     }
 
     // Calcular score
@@ -207,7 +212,7 @@ export class QuizzesService {
       },
     });
 
-    if (!attempt) throw new Error('ATTEMPT_NOT_FOUND');
+    if (!attempt) throw new NotFoundException('ATTEMPT_NOT_FOUND');
 
     return attempt;
   }
@@ -219,7 +224,8 @@ export class QuizzesService {
     const existing = await this.prisma.quiz.findUnique({
       where: { lessonId: dto.lessonId },
     });
-    if (existing) throw new Error('QUIZ_ALREADY_EXISTS_FOR_LESSON');
+    if (existing)
+      throw new BadRequestException('QUIZ_ALREADY_EXISTS_FOR_LESSON');
 
     return this.prisma.quiz.create({
       data: {
@@ -237,7 +243,7 @@ export class QuizzesService {
 
   async createQuestion(quizId: string, dto: CreateQuestionDto): Promise<any> {
     const quiz = await this.prisma.quiz.findUnique({ where: { id: quizId } });
-    if (!quiz) throw new Error('QUIZ_NOT_FOUND');
+    if (!quiz) throw new NotFoundException('QUIZ_NOT_FOUND');
 
     return this.prisma.quizQuestion.create({
       data: {

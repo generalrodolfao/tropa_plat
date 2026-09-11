@@ -382,6 +382,26 @@ export const progressApi = {
   },
 }
 
+// Quizzes — GET /v1/quizzes/lesson/:id e POST /v1/quizzes/:id/attempt
+export const quizzesApi = {
+  getByLesson: async (lessonId: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/quizzes/lesson/${lessonId}`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  submitAttempt: async (
+    quizId: string,
+    answers: Array<{ questionId: string; chosenIndex: number; timeMs: number }>,
+  ): Promise<any> => {
+    const res = await fetch(`${API_BASE}/quizzes/${quizId}/attempt`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ answers }),
+    })
+    return handle(res)
+  },
+}
+
 // Admin — gestão de conteúdo, usuários e pagamentos
 export const adminApi = {
   // Cursos
