@@ -4,9 +4,8 @@ import { useEffect, useState, useCallback } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
-import { Briefcase, MapPin, Search, SlidersHorizontal, FileText, ChevronRight, ExternalLink } from "lucide-react"
+import { Briefcase, MapPin, Search, ChevronRight, Check, Loader2 } from "lucide-react"
 import { vagasApi } from "@/lib/api/service"
 
 interface Vaga {
@@ -28,11 +27,20 @@ export default function VagasPage() {
   const [vagas, setVagas] = useState<Vaga[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [applied, setApplied] = useState<Set<string>>(new Set())
+  const [applying, setApplying] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const loadVagas = useCallback(async () => {
     try {
-      const data = await vagasApi.list()
-      setVagas(Array.isArray(data) ? data : [])
+      const [data, applications] = await Promise.allSettled([
+        vagasApi.list(),
+        vagasApi.myApplications(),
+      ])
+      if (data.status === "fulfilled") setVagas(Array.isArray(data.value) ? data.value : [])
+      if (applications.status === "fulfilled") {
+        setApplied(new Set(applications.value.map((a) => a.jobId)))
+      }
     } catch {
       // silently fail
     } finally {
@@ -43,6 +51,19 @@ export default function VagasPage() {
   useEffect(() => {
     loadVagas()
   }, [loadVagas])
+
+  const handleApply = useCallback(async (jobId: string) => {
+    setError(null)
+    setApplying(jobId)
+    try {
+      await vagasApi.apply(jobId)
+      setApplied((prev) => new Set(prev).add(jobId))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível enviar a candidatura.")
+    } finally {
+      setApplying(null)
+    }
+  }, [])
 
   const filteredVagas = vagas.filter((v) => {
     if (!search) return true
@@ -77,6 +98,12 @@ export default function VagasPage() {
           />
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-2.5 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="p-8 text-center text-muted-foreground">Carregando vagas...</div>
@@ -131,9 +158,24 @@ export default function VagasPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button size="sm" className="gap-1.5">
-                      Candidatar <ChevronRight className="size-3.5" />
-                    </Button>
+                    {applied.has(vaga.id) ? (
+                      <Badge variant="secondary" className="gap-1 px-3 py-1.5 text-accent">
+                        <Check className="size-3.5" /> Candidatura enviada
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={applying === vaga.id}
+                        onClick={() => handleApply(vaga.id)}
+                      >
+                        {applying === vaga.id ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <>Candidatar <ChevronRight className="size-3.5" /></>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 </div>
                 {vaga.description && (

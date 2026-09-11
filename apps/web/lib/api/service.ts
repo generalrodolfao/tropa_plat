@@ -119,6 +119,20 @@ export const vagasApi = {
     const data = await handle<any[]>(res)
     return data
   },
+
+  apply: async (jobId: string, coverLetter?: string): Promise<{ ok: boolean }> => {
+    const res = await fetch(`${API_BASE}/jobs/apply`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ jobId, coverLetter }),
+    })
+    return handle(res)
+  },
+
+  myApplications: async (): Promise<Array<{ id: string; jobId: string; status: string }>> => {
+    const res = await fetch(`${API_BASE}/jobs/my-applications`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
 }
 
 // Trails — GET /v1/trilhas  e  GET /v1/content/courses
