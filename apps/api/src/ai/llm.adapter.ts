@@ -270,6 +270,32 @@ export class LLMAdapter {
 
   // ---------- Structured Output ----------
 
+  /**
+   * OpenAI/Azure exigem, no modo strict, `additionalProperties: false` em todo
+   * objeto e que `required` liste todas as propriedades. Normalizamos o schema
+   * aqui para não ter que repetir isso em cada serviço.
+   */
+  private toStrictSchema(node: any): any {
+    if (Array.isArray(node))
+      return node.map((item) => this.toStrictSchema(item));
+    if (node && typeof node === 'object') {
+      const out: Record<string, any> = {};
+      for (const [key, value] of Object.entries(node)) {
+        out[key] = this.toStrictSchema(value);
+      }
+      if (
+        out.type === 'object' &&
+        out.properties &&
+        typeof out.properties === 'object'
+      ) {
+        out.additionalProperties = false;
+        out.required = Object.keys(out.properties);
+      }
+      return out;
+    }
+    return node;
+  }
+
   async structuredOutput<T>(
     messages: Array<{ role: string; content: string }>,
     schema: any,
@@ -284,7 +310,7 @@ export class LLMAdapter {
         json_schema: {
           name: 'response',
           strict: true,
-          schema,
+          schema: this.toStrictSchema(schema),
         },
       },
     });
