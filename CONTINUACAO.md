@@ -137,10 +137,51 @@ journalctl -u nginx -n 50
 
 ---
 
+## 💾 Backup do Postgres (Railway)
+
+Backup lógico diário roda **dentro do serviço `api`** (sempre ativo), via `@nestjs/schedule`
+(`apps/api/src/worker/database-backup.job.ts`):
+
+- Horário: **03:00 UTC** (`0 3 * * *`)
+- Destino: volume persistente **`backups`** montado em `/backups` no serviço `api`
+- Arquivo: `tropa-YYYY-MM-DD.sql.gz` (retenção de 14 dias, configurável em `BACKUP_RETENTION_DAYS`)
+- Client: `pg_dump 18` (imagem Debian + repo PGDG), compatível com o Postgres 18 do Railway
+- Variáveis: `BACKUP_DIR=/backups`, `BACKUP_RETENTION_DAYS=14`
+
+Verificação manual (via `railway ssh -s api`):
+```bash
+pg_dump --version                 # PostgreSQL 18.x
+ls -la /backups                   # dumps diários
+gzip -t /backups/tropa-<data>.sql.gz
+```
+
+> Restaurar: `gunzip -c tropa-<data>.sql.gz | psql "$DATABASE_URL"`.
+
+---
+
+## 🩺 Monitoramento da VPS
+
+Script + systemd timer em `scripts/vps/` (instalado na VPS em `/usr/local/bin/tropa-monitor.sh`):
+
+- Checa **uso de disco** (`DISK_WARN=80`, `DISK_CRIT=90`)
+- Checa **expiração do certificado** (`CERT_WARN_DAYS=20`, `CERT_CRIT_DAYS=7`)
+- Checa `certbot.timer` e `nginx`
+- Roda a cada 6h (`tropa-monitor.timer`); status em `/var/lib/tropa-monitor/status`, log em `/var/log/tropa-monitor.log`
+- Alerta opcional via `ALERT_WEBHOOK_URL` (`/etc/tropa/monitor.env`)
+
+```bash
+systemctl list-timers tropa-monitor.timer
+cat /var/lib/tropa-monitor/status
+/usr/local/bin/tropa-monitor.sh   # execução manual
+```
+
+---
+
 ## ✅ Checklist para finalizar
 
 - [x] Processar os 23 recordings restantes (HLS na VPS)
 - [x] Atualizar cada aula no Railway com `content.streamUrl` (24 aulas)
 - [x] HTTPS configurado (Let's Encrypt via nip.io) e URLs atualizadas no banco
-- [ ] Pendente (sem custo): backup diario do Postgres, monitoramento (disco/cert), CI verde
-- [ ] Pendente (requer investimento): dominio proprio, plano Cloudflare Stream, billing GitHub
+- [x] Backup diário do Postgres (job no serviço `api` + volume `/backups`)
+- [x] Monitoramento da VPS (disco/certificado/nginx via systemd timer)
+- [ ] Pendente (requer investimento): dominio proprio, plano Cloudflare Stream, billing GitHub (CI)
