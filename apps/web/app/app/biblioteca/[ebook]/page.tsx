@@ -2,18 +2,64 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, BookOpen, CheckCircle2, Award, Clock, ArrowRight } from "lucide-react";
-import { EBOOKS } from "@/lib/mock-inner";
+import { bibliotecaApi } from "@/lib/api/service";
+import type { EbookDetail } from "@/lib/api/client";
 
 export default function EbookReaderPage() {
-  const { ebook } = useParams<{ ebook: string }>();
-  const book = useMemo(() => EBOOKS.find((b) => b.id === ebook), [ebook]);
+  const { ebook: slug } = useParams<{ ebook: string }>();
+  const [book, setBook] = useState<EbookDetail | null>(null);
+  const [readPages, setReadPages] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const [readPages, setReadPages] = useState(book?.readPages ?? 0);
+  useEffect(() => {
+    let active = true;
+    bibliotecaApi
+      .getEbook(slug)
+      .then((data) => {
+        if (!active) return;
+        setBook(data);
+        setReadPages(data.progress?.readPages ?? data.readPages ?? 0);
+      })
+      .catch(() => {
+        if (active) setBook(null);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
+
+  const persist = useCallback(
+    async (pages: number) => {
+      if (!book) return;
+      const capped = Math.max(0, Math.min(book.pages, pages));
+      setReadPages(capped);
+      setSaving(true);
+      try {
+        const res = await bibliotecaApi.updateProgress(book.id, capped);
+        setBook((prev) =>
+          prev ? { ...prev, status: res.status as EbookDetail["status"], readPages: capped } : prev,
+        );
+      } catch {
+        // mantém o valor local; próxima tentativa reconcilia
+      } finally {
+        setSaving(false);
+      }
+    },
+    [book],
+  );
+
+  if (loading) {
+    return <div className="p-8 text-center text-sm text-muted-foreground">Carregando ebook...</div>;
+  }
 
   if (!book) {
     return (
@@ -27,9 +73,9 @@ export default function EbookReaderPage() {
   }
 
   const totalPages = book.pages;
-  const pct = Math.min(100, Math.round((readPages / totalPages) * 100));
+  const pct = totalPages > 0 ? Math.min(100, Math.round((readPages / totalPages) * 100)) : 0;
   const done = readPages >= totalPages;
-  const estHours = Math.max(1, Math.round(((totalPages - readPages) / 15) * 10) / 10);
+  const estHours = Math.max(0, Math.round(((totalPages - readPages) / 15) * 10) / 10);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -55,7 +101,7 @@ export default function EbookReaderPage() {
       </div>
 
       <div>
-        <p className="font-mono text-xs uppercase tracking-widest text-primary">{book.author}</p>
+        <p className="font-mono text-xs uppercase tracking-widest text-primary">{book.author ?? "Equipe Tropa"}</p>
         <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-foreground">{book.title}</h1>
         <div className="mt-4">
           <Progress value={pct} className="h-1.5" indicatorClassName={done ? "bg-accent" : "bg-primary"} />
@@ -67,25 +113,26 @@ export default function EbookReaderPage() {
       </div>
 
       {done ? (
-        <CertificateCard title={book.title} hours={book.readingHours + Math.round(totalPages / 15)} />
+        <CertificateCard title={book.title} hours={Math.max(1, Math.round(totalPages / 15))} />
       ) : (
         <ReaderSection
           readPages={readPages}
           totalPages={totalPages}
           title={book.title}
-          onAdvance={(n) => setReadPages(Math.min(totalPages, readPages + n))}
+          onAdvance={(n) => persist(readPages + n)}
         />
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-md font-mono text-[11px] text-muted-foreground">
-          O progresso de leitura é salvo automaticamente e conta XP ao finalizar.
+          {saving ? "Salvando progresso..." : "O progresso de leitura é salvo automaticamente e conta XP ao finalizar."}
         </p>
         <Button
           variant={done ? "outline" : "default"}
           size="sm"
           className="gap-1.5"
-          onClick={() => setReadPages(totalPages)}
+          disabled={saving}
+          onClick={() => persist(done ? 0 : totalPages)}
         >
           {done ? "Marcar como pendente" : "Marcar como lido"} <CheckCircle2 className="size-3.5" />
         </Button>

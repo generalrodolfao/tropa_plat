@@ -8,7 +8,14 @@ import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Flame, Trophy, Target, ChevronRight, Play, Terminal, Brain, Swords, CheckCircle2, Clock } from "lucide-react"
 import { trailsApi, progressApi, gamificationApi } from "@/lib/api/service"
-import { OFENSIVA_DO_DIA } from "@/lib/mock-data"
+
+const LESSON_TASK_TYPE: Record<string, string> = {
+  video: "assistir",
+  sandbox: "praticar",
+  quiz: "revisar",
+  project: "projeto",
+  challenge: "praticar",
+}
 
 export default function DashboardPage() {
   const [summary, setSummary] = useState<any>(null)
@@ -44,9 +51,20 @@ export default function DashboardPage() {
   const rank = summary?.rank ?? "Recruta"
   const nextRank = summary?.nextRank ?? "Soldado"
   const rankProgress = summary?.rankProgress ?? 0
-  const nextLesson = course?.modules
-    ?.flatMap((m: any) => m.lessons)
-    ?.find((l: any) => !(courseProgress?.completedIds ?? []).includes(l.id))
+  const completedIds: string[] = courseProgress?.completedIds ?? []
+  const remainingLessons: any[] = course?.modules
+    ? course.modules
+        .flatMap((m: any) => (m.lessons ?? []).map((l: any) => ({ ...l, module: m })))
+        .filter((l: any) => !completedIds.includes(l.id))
+    : []
+  const nextLesson = remainingLessons[0]
+  const ofensiva = remainingLessons.slice(0, 4).map((l: any) => ({
+    id: l.id,
+    type: LESSON_TASK_TYPE[l.type] ?? "praticar",
+    title: l.title,
+    detail: l.module?.codename ? `${l.module.codename} · ${l.module.title}` : (l.module?.title ?? ""),
+    xp: l.xpAward ?? 0,
+  }))
 
   return (
     <div className="space-y-6">
@@ -69,32 +87,36 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <section className="hud-corners rounded-xl border border-border/70 bg-card/70 p-5">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Target className="size-5 text-primary" />
-            <h2 className="font-display text-lg font-semibold text-foreground">Ofensiva do dia</h2>
-          </div>
-          <span className="font-mono text-[11px] text-muted-foreground">+275 XP se completar</span>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {OFENSIVA_DO_DIA.map((t) => (
-            <div key={t.id} className="flex flex-col rounded-lg border border-border/60 bg-muted/30 p-3.5">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-primary">{t.type}</span>
-                <span className="font-mono text-xs font-bold text-primary">+{t.xp} XP</span>
-              </div>
-              <div className="text-sm font-medium text-foreground">{t.title}</div>
-              <div className="mt-1 flex-1 text-xs text-muted-foreground">{t.detail}</div>
-              <Button asChild size="sm" variant="ghost" className="mt-3 gap-1 px-2 text-primary">
-                <Link href={course ? `/app/trilhas/${course.slug}` : "/app/trilhas"}>
-                  Começar <ChevronRight className="size-3.5" />
-                </Link>
-              </Button>
+      {ofensiva.length > 0 && (
+        <section className="hud-corners rounded-xl border border-border/70 bg-card/70 p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Target className="size-5 text-primary" />
+              <h2 className="font-display text-lg font-semibold text-foreground">Ofensiva do dia</h2>
             </div>
-          ))}
-        </div>
-      </section>
+            <span className="font-mono text-[11px] text-muted-foreground">
+              +{ofensiva.reduce((acc, t) => acc + t.xp, 0)} XP se completar
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {ofensiva.map((t) => (
+              <div key={t.id} className="flex flex-col rounded-lg border border-border/60 bg-muted/30 p-3.5">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="rounded-md border border-primary/40 bg-primary/10 px-2 py-1 font-mono text-[10px] uppercase tracking-widest text-primary">{t.type}</span>
+                  <span className="font-mono text-xs font-bold text-primary">+{t.xp} XP</span>
+                </div>
+                <div className="text-sm font-medium text-foreground">{t.title}</div>
+                <div className="mt-1 flex-1 text-xs text-muted-foreground">{t.detail}</div>
+                <Button asChild size="sm" variant="ghost" className="mt-3 gap-1 px-2 text-primary">
+                  <Link href={course ? `/app/trilhas/${course.slug}/${t.id}` : "/app/trilhas"}>
+                    Começar <ChevronRight className="size-3.5" />
+                  </Link>
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
         {course ? (

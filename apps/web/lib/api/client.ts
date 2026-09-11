@@ -151,33 +151,59 @@ export interface Trail {
 }
 
 /** Biblioteca */
+export type EbookStatus = "novo" | "lendo" | "concluido"
+
 export interface Ebook {
   id: string
+  slug: string
   title: string
-  author: string
+  author: string | null
   category: string
   pages: number
-  status: "concluido" | "lendo" | "pendente"
-  progressPct: number
-  coverUrl: string
+  readPages: number
+  status: EbookStatus
+  completedAt?: string | null
+}
+
+export interface EbookDetail extends Ebook {
+  description?: string | null
+  progress?: { readPages: number; status: EbookStatus } | null
 }
 
 export interface LibraryStats {
   total: number
-  concluido: number
-  lendo: number
-  pendente: number
+  reading: number
   done: number
-  reading: string
   hours: number
 }
 
 export interface ReadingCertificate {
   id: string
+  type: string
+  referenceId: string | null
   title: string
-  course: string
-  completedAt: string
   hours: number
+  serial: string
+  issuedAt: string
+  verifyUrl?: string | null
+  status: string
+}
+
+/** PDI */
+export interface PdiJourneySkill {
+  skillId: string
+  name: string
+  level: number
+  confidence: number
+  targetLevel: number
+}
+
+export interface PdiJourney {
+  skills: PdiJourneySkill[]
+  overall: {
+    totalSkills: number
+    averageLevel: number
+  }
 }
 
 /** Ligas */
@@ -201,10 +227,17 @@ export interface League {
 }
 
 /** CV */
+export interface CvReviewSection {
+  title: string
+  score: number
+  feedback: string
+}
+
 export interface CvReview {
-  overall: number
-  ats: number
+  overallScore: number
   summary: string
-  sections: Array<{ name: string; score: number; feedback: string }>
+  sections: CvReviewSection[]
+  atsScore: number
+  strengths: string[]
   improvements: string[]
 }

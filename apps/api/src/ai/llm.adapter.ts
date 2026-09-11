@@ -22,11 +22,24 @@ export interface LLMResponse {
 @Injectable()
 export class LLMAdapter {
   private readonly logger = new Logger(LLMAdapter.name);
+  private readonly openrouterKey: string;
+  private readonly openrouterBaseUrl: string;
+  private readonly openrouterSiteUrl: string;
+  private readonly openrouterAppName: string;
   private readonly openaiKey: string;
   private readonly geminiKey: string;
   private readonly openaiBaseUrl = 'https://api.openai.com/v1';
   private readonly geminiBaseUrl =
     'https://generativelanguage.googleapis.com/v1beta';
+
+  // Mapeia nomes curtos usados na AIService para slugs do OpenRouter
+  private static readonly OPENROUTER_MODEL_MAP: Record<string, string> = {
+    'gpt-4o-mini': 'openai/gpt-4o-mini',
+    'gpt-4o': 'openai/gpt-4o',
+    'gemini-flash': 'google/gemini-flash-1.5',
+    'gemini-flash-1.5': 'google/gemini-flash-1.5',
+    'claude-sonnet': 'anthropic/claude-3.5-sonnet',
+  };
 
   // Circuit breaker
   private failures = 0;
@@ -35,6 +48,15 @@ export class LLMAdapter {
   private readonly circuitBreakerResetMs = 60000; // 1 min
 
   constructor(private readonly config: ConfigService) {
+    this.openrouterKey = this.config.get<string>('OPENROUTER_API_KEY') ?? '';
+    this.openrouterBaseUrl = (
+      this.config.get<string>('OPENROUTER_BASE_URL') ??
+      'https://openrouter.ai/api/v1'
+    ).replace(/\/$/, '');
+    this.openrouterSiteUrl =
+      this.config.get<string>('OPENROUTER_SITE_URL') ?? '';
+    this.openrouterAppName =
+      this.config.get<string>('OPENROUTER_APP_NAME') ?? 'Tropa dos Dados';
     this.openaiKey = this.config.get<string>('OPENAI_API_KEY') ?? '';
     this.geminiKey = this.config.get<string>('GEMINI_API_KEY') ?? '';
   }
@@ -57,10 +79,70 @@ export class LLMAdapter {
     this.failures = 0;
   }
 
-  // ---------- Primary: OpenAI ----------
+  private modelForOpenRouter(model: string): string {
+    if (model.includes('/')) return model;
+    return (
+      LLMAdapter.OPENROUTER_MODEL_MAP[model] ??
+      this.config.get<string>('OPENROUTER_DEFAULT_MODEL') ??
+      `openai/${model}`
+    );
+  }
+
+  // ---------- Primary: OpenRouter (OpenAI-compatible) ----------
+
+  async chatOpenRouter(request: LLMRequest): Promise<LLMResponse> {
+    if (this.isCircuitOpen) throw new Error('CIRCUIT_BREAKER_OPEN');
+    if (!this.openrouterKey) throw new Error('OPENROUTER_KEY_MISSING');
+
+    const body: any = {
+      model: this.modelForOpenRouter(request.model),
+      messages: request.messages,
+      temperature: request.temperature ?? 0.7,
+      max_tokens: request.maxTokens ?? 4096,
+    };
+
+    if (request.responseFormat) {
+      body.response_format = request.responseFormat;
+    }
+
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.openrouterKey}`,
+      'Content-Type': 'application/json',
+      'X-Title': this.openrouterAppName,
+    };
+    if (this.openrouterSiteUrl)
+      headers['HTTP-Referer'] = this.openrouterSiteUrl;
+
+    const res = await fetch(`${this.openrouterBaseUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      this.recordFailure();
+      const error = await res.text();
+      throw new Error(`OPENROUTER_ERROR_${res.status}: ${error}`);
+    }
+
+    this.recordSuccess();
+    const json = await res.json();
+    return {
+      content: json.choices?.[0]?.message?.content ?? '',
+      model: json.model ?? body.model,
+      usage: {
+        promptTokens: json.usage?.prompt_tokens ?? 0,
+        completionTokens: json.usage?.completion_tokens ?? 0,
+        totalTokens: json.usage?.total_tokens ?? 0,
+      },
+    };
+  }
+
+  // ---------- Fallback: OpenAI direto ----------
 
   async chatOpenAI(request: LLMRequest): Promise<LLMResponse> {
     if (this.isCircuitOpen) throw new Error('CIRCUIT_BREAKER_OPEN');
+    if (!this.openaiKey) throw new Error('OPENAI_KEY_MISSING');
 
     const body: any = {
       model: request.model,
@@ -104,6 +186,8 @@ export class LLMAdapter {
   // ---------- Fallback: Gemini ----------
 
   async chatGemini(request: LLMRequest): Promise<LLMResponse> {
+    if (!this.geminiKey) throw new Error('GEMINI_KEY_MISSING');
+
     const model = request.model.replace('gpt-', '');
     const url = `${this.geminiBaseUrl}/models/${model}:generateContent?key=${this.geminiKey}`;
 
@@ -145,22 +229,43 @@ export class LLMAdapter {
     };
   }
 
-  // ---------- Router: OpenAI primary, Gemini fallback ----------
+  // ---------- Router: OpenRouter → OpenAI → Gemini ----------
 
   async chat(request: LLMRequest): Promise<LLMResponse> {
-    try {
-      return await this.chatOpenAI(request);
-    } catch (error: any) {
-      this.logger.warn(`OpenAI failed, trying Gemini: ${error.message}`);
+    const providers: Array<{
+      name: string;
+      run: (req: LLMRequest) => Promise<LLMResponse>;
+    }> = [];
+
+    if (this.openrouterKey) {
+      providers.push({
+        name: 'OpenRouter',
+        run: (r) => this.chatOpenRouter(r),
+      });
+    }
+    if (this.openaiKey) {
+      providers.push({ name: 'OpenAI', run: (r) => this.chatOpenAI(r) });
+    }
+    if (this.geminiKey) {
+      providers.push({ name: 'Gemini', run: (r) => this.chatGemini(r) });
+    }
+
+    if (providers.length === 0) {
+      throw new Error('NO_LLM_PROVIDER_CONFIGURED');
+    }
+
+    let lastError: unknown;
+    for (const provider of providers) {
       try {
-        return await this.chatGemini(request);
-      } catch (geminiError: any) {
-        this.logger.error(
-          `Both providers failed: ${error.message} / ${geminiError.message}`,
-        );
-        throw new Error('ALL_LLM_PROVIDERS_FAILED');
+        return await provider.run(request);
+      } catch (error: any) {
+        lastError = error;
+        this.logger.warn(`${provider.name} failed: ${error.message}`);
       }
     }
+
+    this.logger.error(`All LLM providers failed: ${String(lastError)}`);
+    throw new Error('ALL_LLM_PROVIDERS_FAILED');
   }
 
   // ---------- Structured Output ----------

@@ -1,15 +1,12 @@
 import { API_BASE, getAuthHeaders } from "./client"
 import type {
-  Hackathon,
-  HackathonFormData,
-  Vaga,
-  PdiSkill,
-  PdiNode,
   Course,
   Trail,
   Ebook,
+  EbookDetail,
   LibraryStats,
   ReadingCertificate,
+  PdiJourney,
   League,
   CvReview,
   LoginCredentials,
@@ -183,21 +180,45 @@ export const trailsApi = {
 
 // Biblioteca — GET /v1/library
 export const bibliotecaApi = {
-  listEbooks: async (): Promise<Ebook[]> => {
+  list: async (): Promise<{ total: number; reading: number; done: number; ebooks: Ebook[] }> => {
     const res = await fetch(`${API_BASE}/library`, { headers: getAuthHeaders() })
-    const data = await handle<any>(res)
-    // backend pode retornar {ebooks} ou array
-    if (Array.isArray(data)) return data
-    if (data.ebooks) return data.ebooks
-    return []
+    return handle(res)
   },
+
   getStats: async (): Promise<LibraryStats> => {
-    const res = await fetch(`${API_BASE}/library`, { headers: getAuthHeaders() })
-    const data = await handle<any>(res)
-    return data.stats ?? data
+    const { ebooks } = await bibliotecaApi.list()
+    return {
+      total: ebooks.length,
+      reading: ebooks.filter((b) => b.status === "lendo").length,
+      done: ebooks.filter((b) => b.status === "concluido").length,
+      hours: ebooks.reduce((acc, b) => acc + Math.round(b.readPages / 15), 0),
+    }
   },
+
+  getEbook: async (slug: string): Promise<EbookDetail> => {
+    const res = await fetch(`${API_BASE}/library/ebooks/${slug}`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  updateProgress: async (ebookId: string, readPages: number): Promise<{ status: string; progress: { readPages: number; status: string } }> => {
+    const res = await fetch(`${API_BASE}/library/progress`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ ebookId, readPages }),
+    })
+    return handle(res)
+  },
+
   getCertificates: async (): Promise<ReadingCertificate[]> => {
     const res = await fetch(`${API_BASE}/library/certificates`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+}
+
+// PDI — GET /v1/pdi/journey
+export const pdiApi = {
+  getJourney: async (): Promise<PdiJourney> => {
+    const res = await fetch(`${API_BASE}/pdi/journey`, { headers: getAuthHeaders() })
     return handle(res)
   },
 }
@@ -218,10 +239,14 @@ export const gamificationApi = {
   },
 }
 
-// CV
-export const cvApi = {
-  getReview: async (): Promise<CvReview> => {
-    const res = await fetch(`${API_BASE}/library`, { headers: getAuthHeaders() })
+// CV — POST /v1/ai/cv/review
+export const aiApi = {
+  reviewCv: async (cvText: string, targetRole?: string): Promise<CvReview> => {
+    const res = await fetch(`${API_BASE}/ai/cv/review`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ cvText, targetRole }),
+    })
     return handle(res)
   },
 }
