@@ -300,6 +300,37 @@ Web+API+Worker ~R$600 · PG ~R$350 · Redis ~R$120 · Cloudflare (CDN+R2+Stream)
 
 ## 6. Negócio
 
+### 6.0 Marketplace de talento + parcerias de canal (Toccato)
+
+Além das pernas de receita, a plataforma opera como **marketplace de formação e execução em dados**, com distribuidoras de tecnologia (ex.: Toccato — Qlik, GCP) como parceiros de canal:
+
+| Transação | Papel da Tropa | Take rate |
+|---|---|---|
+| Assinatura B2C | Dona do produto | 85–90% |
+| Cursos de parceiros publicados no marketplace | Camada de distribuição + plataforma | 20–30% |
+| Serviços/projetos (consultoria Qlik, dashboards, migração GCP) executados por analistas certificados da Tropa para clientes do canal | Match + gestão de qualidade | 10–15% |
+| Contrato B2B seats | Dona do produto | 70–80% |
+| Hackathons patrocinados pelos vendors do canal | Produção + audiência qualificada | 35–40% |
+
+Posicionamento: **o canal vende a ferramenta, a Tropa fornece a competência** — formação certificada + pipeline de talento que consome a ferramenta. Não canibaliza o licenciamento do parceiro; amplia o valor percebido das licenças vendidas.
+
+### 6.0.1 Gestão de turmas B2B + analytics educacional para RH
+
+Para contratos B2B, a empresa cliente recebe um **painel de administração de turmas** com analytics educacional voltado ao profissional de RH/T&D:
+
+- **Turmas**: criação de turmas por departamento/cargo, atribuição de trilhas, prazos, mentors designados
+- **Consumo de seats**: seats contratados vs. ativos, licenças ociosas, alerta de renovação
+- **Analytics educacional** (o "People Analytics de dados"):
+  - Progresso individual e por turma (% conclusão de trilha, aulas assistidas, quizzes aprovados)
+  - Engajamento: streak, tempo na plataforma, participação em hackathons
+  - **Matriz de competência** por aluno (skill radar gerado do PDI + quizzes) — RH vê onde estão as lacunas do time
+  - Ranking interno saudável / ligas corporativas entre turmas
+  - Alertas de risco de evasão (aluno parado há X dias) e de conclusão (pronto para promoção/certificação)
+- **Relatórios exportáveis** (CSV/PDF) e agendáveis por e-mail — feed direto para o RH justificar investimento em treinamento
+- **ROI do treinamento**: comparativo pré/pós (score diagnóstico do onboarding vs. certificações obtidas)
+
+Esse painel é o argumento de venda B2B: transforma dados de aprendizado em decisão de RH.
+
 ### 6.1 Modelo de receita (3 pernas)
 
 | Fonte | Formato | Margem |
@@ -334,7 +365,7 @@ Preços B2C por tier:
 
 - **Fase 0 — Pré-lançamento**: validar ICPs com waitlist, precificar, criar 1 curso piloto, montar lista de 3–5 sponsors prováveis
 - **Fase 1 — MVP (6 semanas)**: auth, conteúdo, vídeo, quiz fixo, sandbox browser (SQL+Python), pagamentos, XP/streak/badges
-- **Fase 2 — v1 (semanas 7–14)**: PDI completo, projetos+correção, hackathon v1, ligas, mural de vagas, dashboard B2B
+- **Fase 2 — v1 (semanas 7–14)**: PDI completo, projetos+correção, hackathon v1, ligas, mural de vagas, dashboard B2B, gestão de turmas + analytics educacional para RH
 - **Fase 3 — v2 (mês 4–6)**: sandbox R/Excel, dashboard sponsor/judge, offline, CV review produção, NFe B2B, migração completa do legado
 
 ### 6.5 Riscos de negócio (top)

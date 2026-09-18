@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Shield, LayoutDashboard, BookOpen, Code2, Trophy, Briefcase, FileText, Route, Library, Award, User, Swords, LogOut, Menu, Settings } from "lucide-react"
+import { Shield, LayoutDashboard, BookOpen, Code2, Trophy, Briefcase, FileText, Route, Library, Award, User, Swords, LogOut, Menu, Settings, Store, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useAuthStore } from "@/store/authStore"
 import { NotificationsBell } from "@/components/notifications-bell"
@@ -14,6 +14,8 @@ const NAV = [
   { href: "/app/biblioteca", icon: Library, label: "Biblioteca" },
   { href: "/app/hackathons", icon: Trophy, label: "Hackathons" },
   { href: "/app/vagas", icon: Briefcase, label: "Vagas" },
+  { href: "/app/marketplace", icon: Store, label: "Marketplace" },
+  { href: "/app/empresa", icon: Building2, label: "Tropa Corporativa" },
   { href: "/app/pdi", icon: Route, label: "Meu PDI" },
   { href: "/app/cv", icon: FileText, label: "Meu CV" },
   { href: "/app/certificados", icon: Award, label: "Certificados" },
