@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Swords, ArrowUpRight, ArrowDownRight, Minus, Crown, Shield, Medal } from "lucide-react"
 import { ligasApi, gamificationApi } from "@/lib/api/service"
+import { useAuthStore } from "@/store/authStore"
 
 interface LeagueMember {
   userId: string
@@ -15,13 +16,18 @@ interface LeagueMember {
   rank: number
 }
 
-interface League {
-  id: string
-  season: number
-  weekStart: string
-  weekEnd: string
-  status: string
-  rankings: LeagueMember[]
+interface LeaguesCurrentResponse {
+  active?: boolean
+  message?: string
+  league?: {
+    id: string
+    season: number
+    weekStart: string
+    weekEnd: string
+    status?: string
+    cohortSize?: number
+  }
+  rankings?: Array<{ userId: string; rank: number; xp: number; user?: { name?: string } }>
 }
 
 const RANK_LADDER = [
@@ -51,7 +57,8 @@ function currentRank(xp: number) {
 }
 
 export default function LigasPage() {
-  const [league, setLeague] = useState<League | null>(null)
+  const { user } = useAuthStore()
+  const [league, setLeague] = useState<LeaguesCurrentResponse | null>(null)
   const [summary, setSummary] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -63,7 +70,7 @@ export default function LigasPage() {
       ])
 
       if (leagueData.status === "fulfilled") {
-        setLeague(leagueData.value as unknown as League)
+        setLeague(leagueData.value as unknown as LeaguesCurrentResponse)
       }
       if (summaryData.status === "fulfilled") {
         setSummary(summaryData.value)
@@ -81,11 +88,23 @@ export default function LigasPage() {
 
   const xp = summary?.totalXp ?? 0
   const { current, next, progress } = currentRank(xp)
-  const members = league?.rankings ?? []
+  const members: LeagueMember[] = (league?.rankings ?? []).map((r) => ({
+    userId: r.userId,
+    name: r.user?.name ?? "Soldado",
+    xp: r.xp,
+    rank: r.rank,
+  }))
   const promotion = Math.ceil(members.length * 0.15)
   const relegation = Math.ceil(members.length * 0.15)
 
-  const userRank = members.findIndex((m) => m.userId === summary?.userId) + 1
+  const userRank = members.find((m) => m.userId === (user as any)?.id)?.rank ?? 0
+  const weekLabel = (() => {
+    const ws = league?.league?.weekStart
+    const we = league?.league?.weekEnd
+    if (!ws) return null
+    const fmt = (d: string) => new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+    return we ? `${fmt(ws)} – ${fmt(we)}` : fmt(ws)
+  })()
 
   return (
     <div className="space-y-6">
@@ -94,9 +113,9 @@ export default function LigasPage() {
           <p className="font-mono text-xs uppercase tracking-widest text-primary">Batalhão semanal</p>
           <h1 className="mt-1 font-display text-3xl font-bold tracking-tight text-foreground">Ligas</h1>
           <p className="mt-2 font-mono text-xs text-muted-foreground">
-            {league
-              ? `Semana ${league.weekStart} - ${league.weekEnd} · ${members.length} soldados no batalhão`
-              : "Nenhuma liga ativa"}
+            {weekLabel
+              ? `Semana de ${weekLabel} · ${members.length} soldados no batalhão`
+              : "Batalhão ainda não foi formado nesta semana"}
           </p>
         </div>
         <div className="hud-corners flex items-center gap-5 rounded-lg border border-border/70 bg-card/70 px-4 py-3">
