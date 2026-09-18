@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Shield } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
 import { AppSidebar, MobileBar } from "@/components/app-sidebar"
+import { NotificationsBell } from "@/components/notifications-bell"
 
 const NAV = [
   { href: "/app", label: "Painel de bordo" },
@@ -22,6 +23,9 @@ export default function AppLayout({ children }: LayoutProps<"/app">) {
           <AppSidebar />
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
+          <div className="fixed right-4 top-3 z-50 hidden lg:block">
+            <NotificationsBell />
+          </div>
           <MobileBar />
           <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">{children}</main>
         </div>

@@ -48,7 +48,6 @@ export function AppSidebar() {
           </span>
           <span className="mt-0.5 block font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">sala de operações</span>
         </div>
-        <NotificationsBell />
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
