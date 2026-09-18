@@ -9,12 +9,30 @@ import { cn } from "@/lib/utils"
 function Tabs({
   className,
   orientation = "horizontal",
+  value,
+  onValueChange,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  const [internalValue, setInternalValue] = React.useState<string | undefined>(props.defaultValue)
+  const active = value ?? internalValue
+
+  const handleValueChange = (next: string) => {
+    setInternalValue(next)
+    if (typeof window !== "undefined") {
+      const y = window.scrollY
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => window.scrollTo({ top: y, behavior: "instant" as ScrollBehavior }))
+      )
+    }
+    onValueChange?.(next)
+  }
+
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
       data-orientation={orientation}
+      value={active}
+      onValueChange={handleValueChange}
       className={cn(
         "group/tabs flex gap-2 data-horizontal:flex-col",
         className
