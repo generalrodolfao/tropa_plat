@@ -139,7 +139,7 @@ export default function ProjetosPage() {
       )}
 
       <Tabs defaultValue="projetos">
-        <TabsList className={isAdmin ? "grid w-full max-w-md grid-cols-2" : ""}>
+        <TabsList variant="line" className="w-full justify-start gap-6 rounded-none border-b border-border/60 bg-transparent px-0 pb-1">
           <TabsTrigger value="projetos">Projetos</TabsTrigger>
           {isAdmin && (
             <TabsTrigger value="correcoes">

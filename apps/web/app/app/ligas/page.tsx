@@ -135,7 +135,7 @@ export default function LigasPage() {
       </div>
 
       <Tabs defaultValue="ranking">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList variant="line" className="w-full justify-start gap-6 rounded-none border-b border-border/60 bg-transparent px-0 pb-1">
           <TabsTrigger value="ranking">Ranking</TabsTrigger>
           <TabsTrigger value="patentes">Patentes</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>

@@ -168,7 +168,7 @@ export default function EmpresaPage() {
       </div>
 
       <Tabs defaultValue="engajamento">
-        <TabsList>
+        <TabsList variant="line" className="w-full justify-start gap-6 rounded-none border-b border-border/60 bg-transparent px-0 pb-1">
           <TabsTrigger value="engajamento">Engajamento & consumo</TabsTrigger>
           <TabsTrigger value="competencias">Matriz de competência</TabsTrigger>
         </TabsList>

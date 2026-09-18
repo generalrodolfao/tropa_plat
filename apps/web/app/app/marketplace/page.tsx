@@ -35,7 +35,7 @@ export default function MarketplacePage() {
       </div>
 
       <Tabs defaultValue="cursos">
-        <TabsList>
+        <TabsList variant="line" className="w-full justify-start gap-6 rounded-none border-b border-border/60 bg-transparent px-0 pb-1">
           <TabsTrigger value="cursos">Cursos de parceiros</TabsTrigger>
           <TabsTrigger value="servicos">Serviços &amp; projetos</TabsTrigger>
         </TabsList>

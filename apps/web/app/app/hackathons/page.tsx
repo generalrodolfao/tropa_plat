@@ -308,7 +308,7 @@ export default function HackathonsPage() {
       )}
 
       <Tabs defaultValue="fases">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsList variant="line" className="w-full justify-start gap-6 rounded-none border-b border-border/60 bg-transparent px-0 pb-1">
           <TabsTrigger value="fases">Como funciona</TabsTrigger>
           <TabsTrigger value="proximos">Próximos</TabsTrigger>
           <TabsTrigger value="historico">Histórico</TabsTrigger>
