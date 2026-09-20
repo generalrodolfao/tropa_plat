@@ -17,7 +17,7 @@ export default function OnboardingPage() {
     if (!isHydrated) return
     const hasToken = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
     if (!user && !hasToken) router.replace("/login")
-    else if (user?.careerGoal) router.replace("/app")
+    else if (user?.careerGoal || user?.onboardingDoneAt) router.replace("/app")
   }, [isHydrated, user, router])
 
   return <OnboardingWizard onComplete={() => router.push("/app")} />

@@ -67,7 +67,7 @@ export const authApi = {
     return handle(res)
   },
 
-  updateMe: async (data: Partial<User> & { headline?: string; bio?: string; linkedinUrl?: string; githubUrl?: string; timezone?: string }): Promise<User> => {
+  updateMe: async (data: Partial<User> & { headline?: string; bio?: string; linkedinUrl?: string; githubUrl?: string; timezone?: string; onboardingDone?: boolean }): Promise<User> => {
     const res = await fetch(`${API_BASE}/auth/me`, {
       method: "PATCH",
       headers: getAuthHeaders(),

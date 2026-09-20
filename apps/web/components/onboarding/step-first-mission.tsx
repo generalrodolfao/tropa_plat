@@ -62,7 +62,7 @@ export function StepFirstMission({ data }: StepFirstMissionProps) {
 
       <div className="text-center">
         <p className="text-slate-400 text-sm">
-          Clique em <span className="text-purple-400 font-medium">Começar!</span> para iniciar sua jornada.
+          Clique em <span className="text-purple-400 font-medium">Acessar cursos</span> para iniciar sua jornada.
         </p>
       </div>
     </div>

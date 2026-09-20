@@ -110,7 +110,7 @@ function Nav() {
             <Link href="/login">Entrar</Link>
           </Button>
           <Button asChild size="sm">
-            <Link href="/cadastro">Alistar</Link>
+            <Link href="/login">Alistar (convite)</Link>
           </Button>
         </div>
       </div>
@@ -150,7 +150,7 @@ function Hero() {
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Button asChild size="lg" className="gap-2">
-              <Link href="/cadastro">
+              <Link href="/login">
                 <Target className="size-4" />
                 Iniciar missão de treinamento
               </Link>
@@ -413,7 +413,7 @@ function CtaSection() {
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <Button asChild size="lg">
-              <Link href="/cadastro">Alistar-se na Tropa</Link>
+              <Link href="/login">Entrar na Tropa (convite)</Link>
             </Button>
             <Button asChild variant="outline" size="lg">
               <Link href="/login">Ver planos</Link>

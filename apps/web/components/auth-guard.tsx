@@ -21,7 +21,7 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         return
       }
       // usuário autenticado sem onboarding concluído vai para o wizard
-      if (user && !user.careerGoal && !user.roles?.includes("admin")) {
+      if (user && !user.careerGoal && !user.onboardingDoneAt && !user.roles?.includes("admin")) {
         router.replace("/onboarding")
       }
     }

@@ -14,6 +14,7 @@ async function bootstrap() {
   );
 
   app.setGlobalPrefix('v1');
+  await app.register(require('@fastify/helmet').default ?? require('@fastify/helmet'));
   app.enableCors({
     origin: process.env.CORS_ORIGIN?.split(',') ?? true,
     credentials: true,
@@ -36,7 +37,10 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
+  // Swagger só em dev/preview — nunca exposto em produção
+  if ((process.env.SWAGGER_ENABLED ?? 'false') === 'true') {
+    SwaggerModule.setup('docs', app, document);
+  }
 
   const port = Number(process.env.PORT ?? 4000);
   const host = process.env.HOST ?? '0.0.0.0';

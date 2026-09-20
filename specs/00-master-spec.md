@@ -1,7 +1,7 @@
 # Tropa dos Dados — Spec Mestre da Plataforma
 
 **Status:** baseline consolidado (source of truth)
-**Versão:** 1.0 — v0 (MVP) → v1 → v2
+**Versão:** 1.1 — inclui §6.0.2 (plataforma bimodal B2C+B2B: hierarquia de acesso e workshops por cliente, 2026-09-20)
 **Escopo:** plataforma própria de educação em dados, multiaudência (B2C, B2B empresas, instituições, patrocinadores/jurados de hackathon). Substitui Cakto/Hotmart.
 
 > Este documento é o **single source of truth**. Ele consolida os 4 agentes:
@@ -22,6 +22,7 @@
 | Público | 6 ICPs: alunos solo, profissionais em aperfeiçoamento, empresas L&D, instituições de ensino (seats), patrocinadores de hackathon, white-label futuro. |
 | Pedagogia | Metáfora militar (Tropa/Missões/Patentes), XP como moeda única, sprints de 25 min, PDI atualizado a cada 2 semanas, mastery ≥80%, repetição espaçada, ligas (estilo Duolingo). |
 | Monetização | 3 pernas: B2C (R$59–149/mês), B2B seats, sponsors (prêmio + taxa). A plataforma NUNCA financia prêmio do próprio bolso (exceto 1 hackathon de lançamento). |
+| Bimodalidade | B2C vê tudo de aluno (exceto painel de progresso alheio); B2B = Organization com workshops por cliente e hierarquia org_admin › org_manager (só reportees) › org_member (itens pessoais). Ver §6.0.2. |
 | Arquitetura | Monólito modular (1 repo, 3 processos: Next.js web, NestJS API, BullMQ worker). |
 | Banco/Dados | PostgreSQL 16 + Prisma; Redis (fila+cache+rate limit); UUID v7; dinheiro em centavos. |
 | Vídeo | Cloudflare Stream (~$5/1k min armazenados + $1/1k min entregues); R2+CDN sem egress. |
@@ -330,6 +331,95 @@ Para contratos B2B, a empresa cliente recebe um **painel de administração de t
 - **ROI do treinamento**: comparativo pré/pós (score diagnóstico do onboarding vs. certificações obtidas)
 
 Esse painel é o argumento de venda B2B: transforma dados de aprendizado em decisão de RH.
+
+### 6.0.2 Plataforma bimodal B2C + B2B, hierarquia de acesso e Workshops por cliente (v2 — 2026-09-20)
+
+> Revisão dos requisitos de §6.0.1 com o estado real do código (Organization/CompanyMembership já existem; painel B2B atual é mock). Documento-fonte dos requisitos detalhados: esta seção substitui conflitos anteriores.
+
+#### A. Perfis e regra de escopo
+
+| Perfil | Origem | Resumo |
+|---|---|---|
+| `b2c_user` | Assinatura individual | Aluno individual; vê só o próprio progresso |
+| `org_member` | `CompanyMembership` member | Funcionário; itens pessoais + vagas da empresa |
+| `org_manager` | membership manager | Vê **apenas** funcionários que lhe reportam |
+| `org_admin` | membership admin | Vê toda a org: pessoas, analytics RH, faturamento, workshops |
+| `admin` | UserRole plataforma | Staff Tropa: tudo |
+| `judge` | UserRole scoped | Avaliador de hackathon (escopo por submissão) |
+| `channel_partner` | UserRole scoped (org própria do canal) | **Canal/distribuidor**: revende seats/workshops para clientes finais; vê SOMENTE as orgs/clients que ele mesmo trouxe (indicados), MRR compartilhado e pipeline — nunca o conteúdo de aprendizado dos funcionários |
+
+Regra base: perfis se acumulam (B2C que vira membro de org mantém tudo que já tinha); a autorização exige **escalada ao maior escopo válido** por recurso. Membership vale só com seat ativo (`seatActive` e `seatExpiresAt` no futuro) — seat inativo/experido suspende acesso a conteúdo corporativo **preservando o progresso**.
+
+#### B. Matriz de acesso (✅ / 🔶 parcial com escopo / ❌)
+
+| Feature | b2c_user | org_member | org_manager | org_admin | admin | judge |
+|---|---|---|---|---|---|---|
+| Cursos, trilhas, quizzes, sandbox | ✅ | ✅ | ✅ | ✅ | ✅ | 🔶 demo |
+| Biblioteca, gamificação, ligas, hackathons | ✅ | ✅ | ✅ | ✅ | ✅ | 🔶 avaliar |
+| CV, PDI, itens pessoais | ✅ próprios | ✅ próprios | ✅ próprios | ✅ próprios | ✅ | ❌ |
+| Vagas públicas | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Vagas restritas (`org_only`) | ❌ | ✅ própria org | ✅ própria org | ✅ própria org | ✅ | ❌ |
+| Painel de progresso de **outros** alunos | ❌ | ❌ | 🔶 só reportees | 🔶 só org | ✅ | ❌ |
+| Relatórios de workshop | ❌ | ❌ | 🔶 reportees | ✅ org | ✅ | ❌ |
+| Analytics RH / faturamento | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
+| Criar/gerenciar workshops | ❌ | ❌ | 🔶 delegável | 🔶 solicita; Tropa opera | ✅ | ❌ |
+| Gerenciar memberships/seats e atribuir gerente | ❌ | ❌ | ❌ | ✅ | ✅ | ❌ |
+| Orgs do canal (leads/clients indicados) | ❌ | ❌ | ❌ | ❌ | ✅ | 🔶 partner |
+| MRR/comissões do canal | ❌ | ❌ | ❌ | ❌ | ✅ | 🔶 próprio |
+| Painel admin da plataforma | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+
+Regra do canal: `Organization` ganha `channelPartnerOrgId` (self-FK) e `UserRole.scopes` carrega `{"partner_org_id": "..."}` — o partner resolve escopo via `resolveScope`, vendo apenas orgs indicadas (analytics agregado, nunca dados de funcionário).
+
+#### C. Workshops (turmas fechadas por cliente)
+
+- **Conceito**: turma/evento de propriedade de uma `Organization`, com assentos, janela de datas, conteúdo próprio ou reaproveitado do catálogo (`referência + override`, sem copiar cursos), progresso por participante e certificado do tipo `workshop` ao concluir.
+- **Ciclo de vida**: `draft → scheduled → open → closed → archived` (+ cancelamento antes de open); transições por admin da Tropa (a pedido do org_admin) e autoclose na data de fim.
+- **Modelo novo**: `Workshop` (organizationId, status, startAt/endAt, seatLimit, certificateHours), `WorkshopModule/WorkshopLesson` (sourceModuleId/sourceLessonId + overrides), `WorkshopParticipant` (invited→confirmed→active→completed/dropped), `WorkshopLessonProgress`.
+- **Visibilidade do progresso**: participante vê o próprio; org_manager vê agregado apenas dos reportees (nunca respostas individuais de quiz); org_admin vê toda a org; b2c_user sem membership vê apenas os próprios cursos (o painel de acompanhamento de turma é B2B-only).
+
+#### D. Hierarquia interna B2B
+
+- `CompanyMembership` ganha `managerMembershipId` (FK self) + `status active/inactive/left` + `leftAt/leaveRequestedAt`.
+- `org_admin` atribui funcionários a gerentes; gerente vê somente `managerMembershipId = seu membership`; hierarquia multi-nível fica para v2 (CTE recursiva).
+- Registro de leitura de dados de terceiros no `AuditLog` (LGPD).
+
+#### E. Privacidade (LGPD) nos dashboards B2B
+
+Admin/gerentes veem **apenas agregados**: % conclusão, cursos concluídos, badges, horas, presença em workshop. **Nunca**: respostas de quiz por questão, notas detalhadas, CV ou PDI completos, interações com mentor. Consentimento explícito registrado no convite do funcionário.
+
+#### F. Implementação de access control (API)
+
+1. Guardas de rota: `RolesGuard` estendido para `role + organizationId` (+ `OrgMembershipGuard` validando seat ativo).
+2. Scoping fine-grained em service layer, centralizado em um `MembershipScopeService.resolveScope(user, orgId)` → `{ role, visibleMembershipIds }`; todos os endpoints de progresso/workshops/consumem esse helper (b2b.controller hoje é JWT-only — corrigir).
+3. Jobs: query filtra `visibility = 'public' OR organizationId ∈ orgs(user)` (campo `visibility` novo em `Job`).
+4. Critérios de aceite: manager não lista não-reportees na API (teste de service, não só de rota); b2c_user recebe 403 em progresso de terceiros; zero dados de quiz individual em payloads B2B (teste de contrato); seat expirado perde acesso e reativa sem perda.
+
+#### G. Roadmap B2B revisado
+
+| Fase | Escopo |
+|---|---|
+| **F1** | `managerMembershipId` + MembershipScopeService + jobs `org_only` + painel real de progresso (admin/manager) |
+| **F2** | Workshops MVP: model + ciclo de vida + certificados + relatório agregado |
+| **F3** | Conteúdo per-workshop + portal do org_admin (seats, memberships, RH) |
+| **F4** | Analytics RH avançado, billing self-service, delegação de workshop |
+
+Open questions (a resolver com produto): workshop self-service vs operado pela Tropa; assentos do pool da org vs lote próprio; 1 nível ou árvore de gerentes; histórico visível ao novo gerente; vagas org_only para alumni; empacotamento de preço de workshop (one-off × feature do plano).
+
+### 6.0.3 Benchmark — educação corporativa (mercado global × BR, set/2026)
+
+| Ferramenta | Modelo | Forte (benchmark para copiar) | Preço BR/global |
+|---|---|---|---|
+| **Alura Para Empresas** (BR, ref. #1 nacional) | Seats B2B | Painel de gestão RH em tempo real, trilhas por time com IA (Luri), materiais internos da empresa na trilha, provas + autoavaliações, SSO/API | R$125/pessoa/mês (Corp), R$155 (Plus: CS dedicado, SSO, APIs, login com logo), R$197 (Premium: avaliações) |
+| **Docebo** | Enterprise LMS | Skills intelligence (aquisição 365Talents), relatorios avançados, creator IA white-label | Enterprise, sob cotação |
+| **360Learning** | LMS+LXP collaborativo | Co-authoring SME, academias colaborativas, mobile líder G2 | desde ~US$8/usuário |
+| **Degreed / Cornerstone / SAP Litmos** | Talent suite | Skill intelligence × cargo, compliance | enterprise |
+| **Neolude (Inspand — BR enterprise)** | White-label | Multi-tenant white-label, SCORM/xAPI/cmi5/LTI, integração SAP/Workday/Senior/ADP, IA preditiva de evasão | sob cotação |
+| **iSpring reseller** | Canal | Modelo de comissão por camada (referral 10% → reseller 15–25% + recorrente em renovação, portal de deals) | programa público |
+
+**Implicações práticas para a Tropa:**
+1. **Pacicidade por pessoa/mês é o padrão BR** (Alura marca o piso R$125). Nosso posicionamento: nicho de dados + agilidade de plataforma própria (workshops, hackathons, ligas) à preço competitivo (sugerido: seats de R$79–119).
+2. **Benchmark features a priorizar**: dashboard RH em tempo real (F1), trilha com conteúdo próprio do cliente em workshop (F2/F3), provas + autoavaliação (quizzes admin), white-label por org (logo/cores na área da empresa — barato de implementar e muito valorizado no mercado).
+3. **Canal/distribuidor**: mercado está migrando para partner-led (canal já é 31% da receita B2B SaaS em 2026 — ICONIQ). Modelo recomendado (padrão iSpring/Abara): referral 10% → reseller 15% → VAR/strategic 20–25% recorrente, com portal do parceiro (leads, deals registrados, comissões, demo NFR). Implementação: role `channel_partner` + Organization auto-atribuída via `channelPartnerOrgId` (ver §6.0.2).
 
 ### 6.1 Modelo de receita (3 pernas)
 

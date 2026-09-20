@@ -78,6 +78,7 @@ model Profile {
   timezone            String  @default("America/Sao_Paulo")
   learningStyle       String? @map("learning_style") // visual/auditivo/leitura/pratico
   careerGoal          String? @map("career_goal")
+  onboardingDoneAt    DateTime? @map("onboarding_done_at")
   linkedinUrl         String? @map("linkedin_url")
   githubUrl           String? @map("github_url")
   consentMarketingAt  DateTime? @map("consent_marketing_at")

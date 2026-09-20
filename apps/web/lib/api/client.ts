@@ -25,6 +25,7 @@ export interface User {
   roles?: string[]
   careerGoal?: string | null
   learningStyle?: string | null
+  onboardingDoneAt?: string | null
   createdAt?: string
 }
 

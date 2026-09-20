@@ -7,6 +7,7 @@ import {
   MaxLength,
   IsStrongPassword,
   IsIn,
+  IsBoolean,
 } from 'class-validator';
 
 export class RegisterDto {
@@ -113,6 +114,11 @@ export class UpdateMeDto {
   @IsOptional()
   @IsString()
   careerGoal?: string;
+
+  @ApiPropertyOptional({ description: 'Marca onboarding como concluído' })
+  @IsOptional()
+  @IsBoolean()
+  onboardingDone?: boolean;
 }
 
 export class ChangePasswordDto {

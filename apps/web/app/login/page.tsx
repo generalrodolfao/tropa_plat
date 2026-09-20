@@ -62,12 +62,12 @@ export default function LoginPage() {
 
               <p className="text-center text-sm text-muted-foreground">
                 Ainda não tem conta?{" "}
-                <Link href="/cadastro" className="font-medium text-primary hover:underline">
-                  Alistar-se
-                </Link>
+                <span className="font-medium text-muted-foreground cursor-not-allowed">
+                  Alistar-se (fechado)
+                </span>
               </p>
-              <p className="text-center font-mono text-xs text-muted-foreground">
-                Demo: demo@tropadosdados.com / tropa-demo-123 · Admin: admin@tropadosdados.com / admin-tropa-123
+              <p className="text-center text-xs text-muted-foreground">
+                Acesso por convite. Fale com a equipe para receber credenciais.
               </p>
             </form>
           </CardContent>

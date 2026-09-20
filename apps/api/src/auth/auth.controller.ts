@@ -23,6 +23,7 @@ import {
   ForgotPasswordDto,
   ResetPasswordDto,
 } from './dto/auth.dto';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from './current-user.decorator';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
@@ -32,8 +33,15 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Post('register')
-  @ApiOperation({ summary: 'Cadastro de usuário' })
+  @ApiOperation({ summary: 'Cadastro de usuário (desabilitado — convite)' })
   async register(@Body() dto: RegisterDto) {
+    const registrationEnabled =
+      (process.env.REGISTRATION_ENABLED ?? 'false') === 'true';
+    if (!registrationEnabled) {
+      throw new ForbiddenException(
+        'Cadastro temporariamente fechado. Logins são emitidos pela equipe.',
+      );
+    }
     try {
       return await this.auth.register(dto);
     } catch (e) {
@@ -45,6 +53,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @ApiOperation({ summary: 'Login com email e senha' })
   async login(@Body() dto: LoginDto) {
     try {

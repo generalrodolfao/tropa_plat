@@ -34,6 +34,7 @@ export type PublicUser = {
   roles: string[];
   careerGoal: string | null;
   learningStyle: string | null;
+  onboardingDoneAt: Date | null;
   createdAt?: Date;
 };
 
@@ -202,6 +203,7 @@ export class AuthService {
     if (dto.learningStyle !== undefined)
       profileData.learningStyle = dto.learningStyle;
     if (dto.careerGoal !== undefined) profileData.careerGoal = dto.careerGoal;
+    if (dto.onboardingDone) profileData.onboardingDoneAt = new Date();
 
     if (Object.keys(profileData).length > 0) {
       await this.prisma.profile.upsert({
@@ -394,6 +396,7 @@ export class AuthService {
       roles: user.roles.map((r) => r.role),
       careerGoal: user.profile?.careerGoal ?? null,
       learningStyle: user.profile?.learningStyle ?? null,
+      onboardingDoneAt: user.profile?.onboardingDoneAt ?? null,
       createdAt: user.createdAt,
     };
   }
