@@ -189,4 +189,34 @@ export class CoursesService {
       data: { status: 'published', publishedAt: new Date() },
     });
   }
+
+  /** Listagem admin (inclui rascunhos) — usada no painel /admin/cursos */
+  async listForAdmin(opts: {
+    search?: string;
+    status?: string;
+    page: number;
+    limit: number;
+  }): Promise<{ items: any[]; total: number }> {
+    const where: any = {};
+    if (opts.status) where.status = opts.status;
+    if (opts.search) {
+      where.OR = [
+        { title: { contains: opts.search, mode: 'insensitive' as const } },
+        { slug: { contains: opts.search, mode: 'insensitive' as const } },
+      ];
+    }
+    const [items, total] = await Promise.all([
+      this.prisma.course.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: (opts.page - 1) * opts.limit,
+        take: opts.limit,
+        include: {
+          _count: { select: { modules: true } },
+        },
+      }),
+      this.prisma.course.count({ where }),
+    ]);
+    return { items, total };
+  }
 }

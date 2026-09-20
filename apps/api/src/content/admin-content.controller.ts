@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Get,
   Param,
   Post,
   Patch,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -25,6 +27,34 @@ import {
 @Roles('admin')
 export class AdminContentController {
   constructor(private readonly courses: CoursesService) {}
+
+  // listar (painel admin) — inclui rascunhos e métricas básicas
+  @Get('courses')
+  async listCourses(
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '50',
+  ) {
+    const list = await this.courses.listForAdmin({
+      search,
+      status,
+      page: Number(page),
+      limit: Number(limit),
+    });
+    return {
+      items: list.items,
+      total: list.total,
+      page: Number(page),
+      limit: Number(limit),
+      pages: Math.max(1, Math.ceil(list.total / Number(limit))),
+    };
+  }
+
+  @Patch('courses/:courseId/publish')
+  publish(@Param('courseId') courseId: string) {
+    return this.courses.publishCourse(courseId);
+  }
 
   @Post('courses')
   createCourse(@Body() dto: CreateCourseDto) {
@@ -55,10 +85,5 @@ export class AdminContentController {
   @Post('ebooks')
   createEbook(@Body() dto: CreateEbookDto) {
     return this.courses.createEbook(dto);
-  }
-
-  @Post('courses/:courseId/publish')
-  publish(@Param('courseId') courseId: string) {
-    return this.courses.publishCourse(courseId);
   }
 }

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export type XpSource =
   | 'lesson_complete'
@@ -31,7 +32,10 @@ const RANKS: RankInfo[] = [
 export class XpService {
   private readonly logger = new Logger(XpService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   static rankFor(xp: number): { current: RankInfo; next: RankInfo | null } {
     let current = RANKS[0];
@@ -57,7 +61,7 @@ export class XpService {
     amount: number,
     uniqueKey: string,
   ): Promise<{ awarded: boolean; totalXp: number }> {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const existing = await tx.xpEvent.findUnique({
         where: { uniqueKey },
       });
@@ -83,6 +87,35 @@ export class XpService {
 
       return { awarded: true, totalXp: totals.totalXp };
     });
+
+    // Notificação in-app para eventos de missão concluída (fora da tx, tolerante a falha)
+    if (result.awarded) {
+      const TITLES: Partial<Record<XpSource, string>> = {
+        lesson_complete: 'Aula concluída +${amount} XP',
+        quiz_pass: 'Quiz aprovado +${amount} XP',
+        sandbox_complete: 'Sandbox concluída +${amount} XP',
+        project_graded: 'Projeto avaliado +${amount} XP',
+        badge: 'Nova emblema!',
+        hackathon: 'Hackathon +${amount} XP',
+      };
+      const title = TITLES[type]
+        ? TITLES[type].replace('${amount}', String(amount))
+        : null;
+      if (title) {
+        try {
+          await this.notifications.create({
+            userId,
+            type: 'xp',
+            title,
+            body: null as any,
+          });
+        } catch {
+          // in-app silencioso: não bloqueia a concessão de XP
+        }
+      }
+    }
+
+    return result;
   }
 
   async getBadges(userId: string) {
