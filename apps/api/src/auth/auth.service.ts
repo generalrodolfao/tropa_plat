@@ -5,6 +5,7 @@ import { randomUUID } from 'crypto';
 import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service';
 import { EmailService } from '../email/email.module';
+import { welcomeEmail } from '../email/email-templates';
 import {
   LoginDto,
   LogoutDto,
@@ -211,6 +212,42 @@ export class AuthService {
         create: { userId, ...profileData } as any,
         update: profileData as any,
       });
+    }
+
+    // E-mail de boas-vindas na primeira vez que o onboarding é concluído
+    if (dto.onboardingDone || dto.careerGoal !== undefined) {
+      const profile = await this.prisma.profile.findUnique({
+        where: { userId },
+      });
+      const alreadyWelcomed = await this.prisma.auditLog.findFirst({
+        where: { actorUserId: userId, action: 'email.welcome_sent' },
+      });
+      if (dto.onboardingDone && !alreadyWelcomed) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+        });
+        if (user) {
+          await this.email.sendTemplated(
+            user.email,
+            welcomeEmail(
+              user.name,
+              profile?.careerGoal ?? 'Sua carreira em dados',
+              (
+                this.config.get<string>('WEB_APP_URL') ??
+                'https://web-production-7b81.up.railway.app'
+              ).replace(/\/$/, ''),
+            ),
+          );
+          await this.prisma.auditLog.create({
+            data: {
+              actorUserId: userId,
+              action: 'email.welcome_sent',
+              resourceType: 'email',
+              resourceId: userId,
+            },
+          });
+        }
+      }
     }
 
     await this.prisma.auditLog.create({

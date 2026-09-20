@@ -1,5 +1,6 @@
 import { Global, Injectable, Logger, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { MailContent } from './email-templates';
 
 /**
  * Envio de e-mail transacional via Resend (env-gated).
@@ -64,6 +65,33 @@ export class EmailService {
        <p><a href="${link}">Definir nova senha</a> — o link é válido por 1 hora.</p>
        <p>Se não foi você, ignore este e-mail.</p>`,
     );
+  }
+
+  /** Envia o conteúdo de um template já pronto ({ subject, html }). */
+  async sendTemplated(to: string, content: MailContent): Promise<boolean> {
+    return this.send(to, content.subject, content.html);
+  }
+
+  /**
+   * Fila manual: envio em lote tolerante a falhas (usado pelos jobs).
+   * Retorna quantos e-mails partiram.
+   */
+  async sendBatch(
+    items: Array<{ to: string; content: MailContent }>,
+  ): Promise<number> {
+    let sent = 0;
+    for (const item of items) {
+      // Resend aceita 2 req/s no plano free — espalhar para ser seguro
+      const ok = await this.send(
+        item.to,
+        item.content.subject,
+        item.content.html,
+      );
+      if (!ok) continue;
+      sent++;
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+    return sent;
   }
 }
 
