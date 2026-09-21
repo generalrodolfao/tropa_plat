@@ -7,7 +7,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { IsObject, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { CvService } from './cv.service';
@@ -25,6 +31,19 @@ class SaveCvDto {
   @IsOptional()
   @IsObject()
   review?: SaveCvReview;
+}
+
+class ExtractCvFileDto {
+  @IsString()
+  @MaxLength(255)
+  filename!: string;
+
+  @IsString()
+  @MaxLength(100)
+  mime!: string;
+
+  @IsString()
+  base64!: string;
 }
 
 @ApiTags('cv')
@@ -45,5 +64,17 @@ export class CvController {
   @ApiOperation({ summary: 'Salvar CV (texto, dados extraídos e revisão)' })
   save(@CurrentUser() user: { userId: string }, @Body() dto: SaveCvDto) {
     return this.cv.save(user.userId, dto);
+  }
+
+  @Post('extract')
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Extrair texto de um arquivo (PDF, Word, TXT / CTPS, diploma)',
+  })
+  extract(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: ExtractCvFileDto,
+  ) {
+    return this.cv.extractText(dto.filename, dto.mime, dto.base64);
   }
 }

@@ -387,7 +387,7 @@ export const servicosParceirosDemo: ServicoParceiro[] = [
     earnings: 5400,
     serviceFeePct: 12,
     skills: ["Qlik", "SQL"],
-    deadline: "5 dias para candidatar",
+    deadline: "5 dias para solicitar",
   },
   {
     id: "sp-dash-vendas",
@@ -399,7 +399,7 @@ export const servicosParceirosDemo: ServicoParceiro[] = [
     earnings: 7800,
     serviceFeePct: 12,
     skills: ["Qlik", "Storytelling"],
-    deadline: "2 dias para candidatar",
+    deadline: "2 dias para solicitar",
   },
   {
     id: "sp-pipeline-gcp",
@@ -411,7 +411,7 @@ export const servicosParceirosDemo: ServicoParceiro[] = [
     earnings: 12000,
     serviceFeePct: 10,
     skills: ["GCP", "Python"],
-    deadline: "7 dias para candidatar",
+    deadline: "7 dias para solicitar",
   },
   {
     id: "sp-qa-dados",
@@ -423,7 +423,7 @@ export const servicosParceirosDemo: ServicoParceiro[] = [
     earnings: 9600,
     serviceFeePct: 10,
     skills: ["SQL", "Estatística"],
-    deadline: "4 dias para candidatar",
+    deadline: "4 dias para solicitar",
   },
 ]
 

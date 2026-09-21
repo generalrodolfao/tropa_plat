@@ -7,6 +7,7 @@ import {
   DiagnosticQuizDto,
   GeneratePdiDto,
   GenerateQuizItemsDto,
+  SummarizeHighlightsDto,
 } from './dto/ai.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -33,6 +34,15 @@ export class AIController {
   @ApiOperation({ summary: 'Revisar CV com feedback da IA' })
   async reviewCV(@Body() dto: CvReviewDto) {
     return this.aiService.reviewCV(dto);
+  }
+
+  @Post('learning/summarize-highlights')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Gerar resumo de trechos grifados em leituras' })
+  async summarizeHighlights(@Body() dto: SummarizeHighlightsDto) {
+    return this.aiService.summarizeHighlights(dto);
   }
 
   @Post('pdi/generate')

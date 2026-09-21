@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { FileTextService } from '../common/file-text.service';
 
 export type SaveCvReview = {
   overallScore: number;
@@ -12,7 +13,10 @@ export type SaveCvReview = {
 
 @Injectable()
 export class CvService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly fileText: FileTextService,
+  ) {}
 
   async getCurrent(userId: string) {
     const cv = await this.prisma.cv.findFirst({
@@ -89,5 +93,21 @@ export class CvService {
     }
 
     return this.getCurrent(userId);
+  }
+
+  // ---------- Extração de texto de arquivos (PDF / DOC / DOCX / TXT) ----------
+
+  async extractText(
+    filename: string,
+    mime: string,
+    base64: string,
+  ): Promise<{ text: string; filename: string }> {
+    const { text } = await this.fileText.extractText(filename, mime, base64);
+    if (text.length < 50) {
+      throw new BadRequestException(
+        'Não foi possível extrair o texto do arquivo (pouco conteúdo). Confirme se o arquivo não é um print/imagem.',
+      );
+    }
+    return { text, filename };
   }
 }

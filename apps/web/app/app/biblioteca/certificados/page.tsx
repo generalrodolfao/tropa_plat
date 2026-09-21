@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Award, Download, Shield, ChevronLeft, FileText, Calendar, Clock } from "lucide-react";
 import { bibliotecaApi } from "@/lib/api/service";
@@ -45,11 +44,9 @@ export default function CertificadosPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button asChild variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
-          <Link href="/app/biblioteca">
-            <ChevronLeft className="size-4" /> Biblioteca
-          </Link>
-        </Button>
+        <Link href="/app/biblioteca" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <ChevronLeft className="size-4" /> Biblioteca
+        </Link>
         <div className="flex items-center gap-2 font-mono text-[11px] text-muted-foreground">
           <span>horas complementares</span>
           <span className="text-border">·</span>
@@ -111,12 +108,15 @@ export default function CertificadosPage() {
                   <Badge className="gap-1 px-2.5 py-1 font-mono text-[11px]">
                     <Shield className="size-3" /> {c.status === "issued" ? "emitido" : c.status}
                   </Badge>
-                  {c.verifyUrl && (
-                    <Button asChild size="sm" variant="outline" className="gap-1.5">
-                      <a href={c.verifyUrl} target="_blank" rel="noreferrer">
-                        <Download className="size-3.5" /> Validar
-                      </a>
-                    </Button>
+                  {c.status === "issued" && (
+                    <a
+                      href={`/certificados/verificar/${c.serial}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-md border border-border bg-background px-3 font-mono text-xs text-foreground transition-colors hover:bg-muted"
+                    >
+                      <Download className="size-3.5" /> Validar
+                    </a>
                   )}
                 </div>
               </CardContent>

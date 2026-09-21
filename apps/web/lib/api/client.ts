@@ -229,6 +229,88 @@ export interface League {
   ranking: LeagueMember[]
 }
 
+/** Camps (treino intensivo / hotseat) */
+export type CampFormat = "quiz" | "exercise" | "interview" | "requirements" | "hotseat"
+
+export interface Camp {
+  id: string
+  slug: string
+  title: string
+  description: string
+  category: string
+  icon: string | null
+  difficulty: string
+  formats: CampFormat[]
+  xpAward: number
+  bank: Record<string, number>
+  stats: { sessions: number; bestScore: number; lastPlayedAt: string | null }
+}
+
+export interface CampQuestionItem {
+  index: number
+  format: CampFormat
+  prompt: string
+  options?: string[]
+  difficulty: number
+}
+
+export interface CampSessionStart {
+  sessionId: string
+  mode: "standard" | "hotseat"
+  format: string
+  totalItems: number
+  camp: {
+    id: string
+    slug: string
+    title: string
+    category: string
+    icon: string | null
+    xpAward: number
+  }
+  items: CampQuestionItem[]
+}
+
+export interface CampAnswerResult {
+  itemIndex: number
+  correct: boolean
+  score: number
+  feedback: string
+  correctIndex?: number
+  answerKey?: string
+}
+
+export interface CampSessionSummary {
+  headline: string
+  summary: string
+  strengths: string[]
+  improvements: string[]
+}
+
+export interface CampSessionResult {
+  sessionId: string
+  campSlug?: string
+  score: number
+  passed: boolean
+  earnedXp: number
+  totalItems: number
+  answered: number
+  durationSec: number
+  summary: CampSessionSummary
+}
+
+export interface CampSessionHistoryItem {
+  id: string
+  format: string
+  mode: string
+  status: string
+  score: number
+  earnedXp: number
+  totalItems: number
+  startedAt: string
+  finishedAt: string | null
+  camp: { slug: string; title: string; category: string; icon: string | null }
+}
+
 /** CV */
 export interface CvReviewSection {
   title: string

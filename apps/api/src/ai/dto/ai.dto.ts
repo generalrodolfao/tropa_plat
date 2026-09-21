@@ -28,6 +28,17 @@ export class CvReviewDto {
   targetRole?: string;
 }
 
+export class SummarizeHighlightsDto {
+  @ApiProperty({ description: 'Lista de trechos grifados pelo usuário' })
+  @IsArray()
+  highlights: Array<{ text: string; page?: number }>;
+
+  @ApiPropertyOptional({ description: 'Título do ebook/material' })
+  @IsOptional()
+  @IsString()
+  source?: string;
+}
+
 export class GeneratePdiDto {
   @ApiProperty({ description: 'Objetivo de carreira' })
   @IsString()

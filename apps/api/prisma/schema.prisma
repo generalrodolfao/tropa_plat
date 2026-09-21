@@ -66,6 +66,7 @@ model User {
   subscriptions  Subscription[]
   notes          Note[]
   notificationPrefs NotificationPref[]
+  campSessions   CampSession[]
 
   @@index([status])
 }
@@ -1207,4 +1208,94 @@ model AuditLog {
   @@index([actorUserId, createdAt])
   @@index([resourceType, resourceId])
   @@map("audit_logs")
+}
+
+// ---------- Camps (treino intensivo / hotseat) ----------
+
+model Camp {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  title       String
+  description String
+  category    String // sql | python | business | interview
+  icon        String?
+  difficulty  String   @default("intermediate") // beginner/intermediate/advanced
+  formats     String[] // quiz | exercise | interview | requirements | hotseat
+  xpAward     Int      @default(120) @map("xp_award")
+  status      String   @default("active") // active | paused
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  questions CampQuestion[]
+  sessions  CampSession[]
+
+  @@index([category])
+  @@index([status])
+  @@map("camps")
+}
+
+model CampQuestion {
+  id           String   @id @default(uuid()) @db.Uuid
+  campId       String   @map("camp_id") @db.Uuid
+  format       String // quiz | exercise | interview | requirements | hotseat
+  prompt       String
+  options      Json? // string[] para quiz
+  correctIndex Int?     @map("correct_index")
+  answerKey    String?  @map("answer_key") // resposta de referência / rubrica
+  explanation  String?
+  difficulty   Int      @default(3) // 1..5
+  tags         String[]
+  status       String   @default("active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  camp Camp @relation(fields: [campId], references: [id], onDelete: Cascade)
+
+  @@index([campId, format])
+  @@map("camp_questions")
+}
+
+model CampSession {
+  id          String    @id @default(uuid()) @db.Uuid
+  campId      String    @map("camp_id") @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  format      String // formato escolhido ou "mixed"
+  mode        String    @default("standard") // standard | hotseat
+  status      String    @default("in_progress") // in_progress | finished
+  score       Int       @default(0)
+  earnedXp    Int       @default(0) @map("earned_xp")
+  totalItems  Int       @default(0) @map("total_items")
+  items       Json? // snapshot dos itens gerados (sem gabarito sensível)
+  summary     Json? // feedback geral da IA
+  startedAt   DateTime  @default(now()) @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+  durationSec Int?      @map("duration_sec")
+
+  camp    Camp         @relation(fields: [campId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers CampAnswer[]
+
+  @@index([campId, userId])
+  @@index([userId, startedAt])
+  @@map("camp_sessions")
+}
+
+model CampAnswer {
+  id          String   @id @default(uuid()) @db.Uuid
+  sessionId   String   @map("session_id") @db.Uuid
+  itemIndex   Int      @map("item_index")
+  format      String
+  prompt      String
+  answer      String? // resposta textual do usuário
+  chosenIndex Int?     @map("chosen_index")
+  correct     Boolean?
+  score       Int      @default(0) // 0..100
+  feedback    String?
+  timeMs      Int      @default(0) @map("time_ms")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  session CampSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, itemIndex])
+  @@map("camp_answers")
 }

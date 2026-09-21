@@ -1,13 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useRef, useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { FileText, RefreshCw, AlertTriangle, CheckCircle2, Lightbulb, ScanSearch, Loader2, Sparkles, UploadCloud } from "lucide-react"
+import { FileText, RefreshCw, AlertTriangle, CheckCircle2, Lightbulb, ScanSearch, Loader2, Sparkles, UploadCloud, FileUp } from "lucide-react"
 import { aiApi, cvApi } from "@/lib/api/service"
 import type { CvReview } from "@/lib/api/client"
 
@@ -23,8 +23,11 @@ export default function CvPage() {
   const [targetRole, setTargetRole] = useState("Analista de Dados")
   const [review, setReview] = useState<CvReview | null>(null)
   const [loading, setLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
+  const [fileInfo, setFileInfo] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     let active = true
@@ -72,6 +75,25 @@ export default function CvPage() {
     }
   }
 
+  async function handleFileUpload(file: File) {
+    setError(null)
+    setUploading(true)
+    try {
+      const { text } = await cvApi.extractFile(file)
+      setCvText(text)
+      setFileInfo(file.name)
+      // extraiu → já dispara a análise em seguida
+      const result = await aiApi.reviewCv(text, targetRole)
+      setReview(result)
+      setEditing(false)
+      cvApi.save({ text, review: result }).catch(() => {})
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao ler o arquivo.")
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const showForm = !review || editing
 
   return (
@@ -95,8 +117,39 @@ export default function CvPage() {
         <Card className="hud-corners border-border/70 bg-card/70">
           <CardContent className="space-y-4 p-6">
             <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-              <UploadCloud className="size-3.5 text-primary" /> Cole o conteúdo do seu CV
+              <UploadCloud className="size-3.5 text-primary" /> Suba seu CV ou cole o conteúdo
             </div>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="w-full rounded-lg border border-dashed border-primary/40 bg-primary/5 px-4 py-5 text-center transition-colors hover:border-primary/70 hover:bg-primary/10 disabled:opacity-60"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.txt"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) handleFileUpload(file)
+                  e.target.value = ""
+                }}
+              />
+              {uploading ? (
+                <span className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin" /> Extraindo texto do arquivo...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <FileUp className="size-4 text-primary" />
+                  {fileInfo ? `Arquivo: ${fileInfo}` : "Clique para enviar PDF, Word ou TXT"}
+                </span>
+              )}
+              <span className="mt-1 block font-mono text-[10px] text-muted-foreground/70">
+                Aceita PDF, .doc, .docx e TXT · também serve para CTPS e diplomas digitalizados
+              </span>
+            </button>
             <div className="grid gap-3 sm:grid-cols-[1fr_240px]">
               <Textarea
                 value={cvText}

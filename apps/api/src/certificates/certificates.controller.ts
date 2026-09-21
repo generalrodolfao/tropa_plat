@@ -7,7 +7,9 @@ import {
   Query,
   UseGuards,
   HttpCode,
+  Res,
 } from '@nestjs/common';
+import type { FastifyReply } from 'fastify';
 import {
   ApiTags,
   ApiOperation,
@@ -18,6 +20,20 @@ import { CertificatesService } from './certificates.service';
 import { IssueCertificateDto } from './dto/certificates.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { IsString, MaxLength } from 'class-validator';
+
+class UploadCertificateDto {
+  @IsString()
+  @MaxLength(255)
+  filename!: string;
+
+  @IsString()
+  @MaxLength(100)
+  mime!: string;
+
+  @IsString()
+  base64!: string;
+}
 
 @ApiTags('Certificados')
 @Controller('certificates')
@@ -56,6 +72,39 @@ export class CertificatesController {
   @ApiOperation({ summary: 'Detalhes do certificado' })
   async getCertificateDetails(@Param('certificateId') certificateId: string) {
     return this.certificatesService.getCertificateDetails(certificateId);
+  }
+
+  @Get(':certificateId/pdf')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Baixar certificado em PDF' })
+  async getCertificatePdf(
+    @CurrentUser() user: { userId: string },
+    @Param('certificateId') certificateId: string,
+    @Res() res: FastifyReply,
+  ) {
+    const pdf = await this.certificatesService.generatePdf(
+      certificateId,
+      user.userId,
+    );
+    res
+      .type(pdf.mime)
+      .header('Content-Disposition', `attachment; filename="${pdf.filename}"`)
+      .send(pdf.buffer);
+  }
+
+  @Post('upload')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Enviar certificado externo (diploma, curso...) em PDF',
+  })
+  async uploadCertificate(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: UploadCertificateDto,
+  ) {
+    return this.certificatesService.uploadExternal(user.userId, dto);
   }
 
   @Post(':certificateId/revoke')

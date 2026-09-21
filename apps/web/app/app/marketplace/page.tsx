@@ -1,10 +1,12 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { CheckCircle2, X } from "lucide-react"
 import {
   Store,
   Clock,
@@ -15,8 +17,32 @@ import {
   Layers,
 } from "lucide-react"
 import { parceirosCursosDemo, servicosParceirosDemo, fmtBRL } from "@/lib/demo-data"
+import type { ServicoParceiro, ParceiroCurso } from "@/lib/demo-data"
 
 export default function MarketplacePage() {
+  const [course, setCourse] = useState<ParceiroCurso | null>(null)
+  const [service, setService] = useState<ServicoParceiro | null>(null)
+  const [interest, setInterest] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("marketplaceInterests")
+      if (raw) setInterest(JSON.parse(raw))
+    } catch {
+      // ignora
+    }
+  }, [])
+
+  function registerInterest(id: string) {
+    const next = { ...interest, [id]: new Date().toISOString() }
+    setInterest(next)
+    try {
+      localStorage.setItem("marketplaceInterests", JSON.stringify(next))
+    } catch {
+      // ignora
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -64,7 +90,7 @@ export default function MarketplacePage() {
                   </div>
                   <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-3">
                     <span className="font-display text-lg font-bold text-primary">{fmtBRL(c.price)}</span>
-                      <Button size="sm" variant="secondary" className="gap-1.5 font-mono text-[11px]">
+                      <Button size="sm" variant="secondary" className="gap-1.5 font-mono text-[11px]" onClick={() => setCourse(c)}>
                       Inscrever <ChevronRight className="size-3.5" />
                     </Button>
                   </div>
@@ -96,7 +122,7 @@ export default function MarketplacePage() {
                       <div className="font-display text-lg font-bold text-primary">{fmtBRL(s.earnings)}</div>
                       <div className="font-mono text-[10px] text-muted-foreground">fee plataforma {s.serviceFeePct}%</div>
                       <div className="mt-1 font-mono text-[10px] text-accent">{s.deadline}</div>
-                      <Button size="sm" className="mt-2 font-mono text-[11px]">Candidatar-se</Button>
+                      <Button size="sm" className="mt-2 font-mono text-[11px]" onClick={() => setService(s)}>Solicitar</Button>
                     </div>
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1">
@@ -110,6 +136,93 @@ export default function MarketplacePage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {course && (
+        <InterestModal
+          title={course.title}
+          eyebrow="Curso de parceiro"
+          meta={[
+            `parceiro: ${course.partner}`,
+            `${course.hours}h de conteúdo`,
+            `${course.students.toLocaleString("pt-BR")} alunos`,
+            `avaliação ${course.rating}/5`,
+            course.especialidade,
+          ]}
+          actionLabel="Confirmar interesse"
+          interested={Boolean(interest[course.id])}
+          onConfirm={() => registerInterest(course.id)}
+          onClose={() => setCourse(null)}
+        />
+      )}
+
+      {service && (
+        <InterestModal
+          title={service.title}
+          eyebrow="Serviço & projeto"
+          meta={[
+            `empresa: ${service.partner}`,
+            `perfil ${service.tier}`,
+            `${service.slots} vaga(s)`,
+            `${service.days} dias`,
+            `remuneração ${fmtBRL(service.earnings)}`,
+            `fee plataforma ${service.serviceFeePct}%`,
+          ]}
+          actionLabel="Enviar solicitação"
+          interested={Boolean(interest[service.id])}
+          onConfirm={() => registerInterest(service.id)}
+          onClose={() => setService(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function InterestModal({
+  title,
+  eyebrow,
+  meta,
+  actionLabel,
+  interested,
+  onConfirm,
+  onClose,
+}: {
+  title: string
+  eyebrow: string
+  meta: string[]
+  actionLabel: string
+  interested: boolean
+  onConfirm: () => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-xl border border-border bg-card p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-primary">{eyebrow}</p>
+            <h3 className="mt-1 font-display text-lg font-semibold text-foreground">{title}</h3>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="size-4" />
+          </Button>
+        </div>
+        <ul className="mt-4 space-y-2 font-mono text-[11px] text-muted-foreground">
+          {meta.map((m) => (
+            <li key={m} className="flex items-start gap-2">
+              <ChevronRight className="mt-0.5 size-3.5 shrink-0 text-primary" /> {m}
+            </li>
+          ))}
+        </ul>
+        {interested ? (
+          <div className="mt-6 flex items-center gap-2 rounded-lg border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-foreground">
+            <CheckCircle2 className="size-4 shrink-0 text-accent" /> Interesse registrado. A empresa parceira será notificada.
+          </div>
+        ) : (
+          <Button className="mt-6 w-full gap-2" onClick={onConfirm}>
+            <CheckCircle2 className="size-4" /> {actionLabel}
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

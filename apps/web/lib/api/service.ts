@@ -13,6 +13,11 @@ import type {
   RegisterCredentials,
   User,
   AuthTokens,
+  Camp,
+  CampSessionStart,
+  CampAnswerResult,
+  CampSessionResult,
+  CampSessionHistoryItem,
 } from "./client"
 
 async function handle<T>(res: Response): Promise<T> {
@@ -402,13 +407,41 @@ export const notificationsApi = {
 
 // Certificados — /v1/certificates
 export const certificatesApi = {
-  my: async (): Promise<any[]> => {
+  my: async (): Promise<ReadingCertificate[]> => {
     const res = await fetch(`${API_BASE}/certificates/my`, { headers: getAuthHeaders() })
     return handle(res)
   },
   verify: async (serial: string): Promise<any> => {
     const res = await fetch(`${API_BASE}/certificates/verify/${encodeURIComponent(serial)}`)
     return handle(res)
+  },
+  upload: async (file: File): Promise<{ ok: boolean; certificateId: string; serial: string; title: string }> => {
+    const base64 = await fileToBase64(file)
+    const res = await fetch(`${API_BASE}/certificates/upload`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ filename: file.name, mime: file.type || "application/octet-stream", base64 }),
+    })
+    return handle(res)
+  },
+  download: async (certificateId: string, filename: string): Promise<void> => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null
+    const res = await fetch(`${API_BASE}/certificates/${certificateId}/pdf`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      throw new Error(body?.message || body?.error || `Erro ${res.status}`)
+    }
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
   },
 }
 
@@ -423,6 +456,15 @@ export const cvApi = {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+  extractFile: async (file: File): Promise<{ text: string; filename: string }> => {
+    const base64 = await fileToBase64(file)
+    const res = await fetch(`${API_BASE}/cv/extract`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ filename: file.name, mime: file.type || "application/octet-stream", base64 }),
     })
     return handle(res)
   },
@@ -467,6 +509,18 @@ export const aiApi = {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  summarizeHighlights: async (
+    highlights: Array<{ text: string; page?: number }>,
+    source?: string,
+  ): Promise<{ title: string; summary: string; keyPoints: string[]; suggestions: string }> => {
+    const res = await fetch(`${API_BASE}/ai/learning/summarize-highlights`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ highlights, source }),
     })
     return handle(res)
   },
@@ -559,6 +613,64 @@ export const quizzesApi = {
   deleteQuestion: async (questionId: string): Promise<any> => {
     const res = await fetch(`${API_BASE}/quizzes/admin/questions/${questionId}`, {
       method: "DELETE",
+      headers: getAuthHeaders(),
+    })
+    return handle(res)
+  },
+}
+
+// Camps — treino intensivo / hotseat
+export const campsApi = {
+  list: async (): Promise<Camp[]> => {
+    const res = await fetch(`${API_BASE}/camps`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  get: async (slug: string): Promise<Camp & { sessions: CampSessionHistoryItem[] }> => {
+    const res = await fetch(`${API_BASE}/camps/${slug}`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  history: async (): Promise<CampSessionHistoryItem[]> => {
+    const res = await fetch(`${API_BASE}/camps/me/history`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+
+  startSession: async (
+    slug: string,
+    data: { format?: string; count?: number; difficulty?: number; mode?: "standard" | "hotseat" },
+  ): Promise<CampSessionStart> => {
+    const res = await fetch(`${API_BASE}/camps/${slug}/sessions`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  answer: async (
+    sessionId: string,
+    data: { itemIndex: number; chosenIndex?: number; text?: string; timeMs?: number },
+  ): Promise<CampAnswerResult> => {
+    const res = await fetch(`${API_BASE}/camps/sessions/${sessionId}/answers`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data),
+    })
+    return handle(res)
+  },
+
+  finish: async (sessionId: string): Promise<CampSessionResult> => {
+    const res = await fetch(`${API_BASE}/camps/sessions/${sessionId}/finish`, {
+      method: "POST",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({}),
+    })
+    return handle(res)
+  },
+
+  getSession: async (sessionId: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/camps/sessions/${sessionId}`, {
       headers: getAuthHeaders(),
     })
     return handle(res)
@@ -691,4 +803,17 @@ export const adminApi = {
     })
     return handle(res)
   },
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      const base64 = result.includes(",") ? result.split(",")[1] : result
+      resolve(base64)
+    }
+    reader.onerror = () => reject(new Error("Não foi possível ler o arquivo."))
+    reader.readAsDataURL(file)
+  })
 }

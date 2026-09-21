@@ -13,7 +13,7 @@ interface UserRecord {
   name: string
   status: string
   createdAt: string
-  roles: string[]
+  roles: Array<{ role: string; organizationId?: string | null }>
 }
 
 export default function AdminUsuariosPage() {
@@ -38,8 +38,8 @@ export default function AdminUsuariosPage() {
       })
       if (res.ok) {
         const data = await res.json()
-        setUsers(data.items ?? data ?? [])
-        setTotal(data.total ?? 0)
+        setUsers(data.data ?? data.items ?? data ?? [])
+        setTotal(data.meta?.total ?? data.total ?? 0)
       }
     } catch {
       // silently fail
@@ -117,7 +117,7 @@ export default function AdminUsuariosPage() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <div className="grid size-8 place-items-center rounded-full border border-primary/50 bg-primary/15 font-mono text-xs font-bold text-primary">
-                            {user.name[0]?.toUpperCase() ?? "U"}
+                            {user.name?.[0]?.toUpperCase() ?? "U"}
                           </div>
                           <div>
                             <div className="font-medium text-foreground">{user.name}</div>
@@ -127,9 +127,9 @@ export default function AdminUsuariosPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
-                          {user.roles.map((role) => (
-                            <Badge key={role} variant={role === "admin" ? "default" : "secondary"} className="text-xs">
-                              {role}
+                          {user.roles.map((r, i) => (
+                            <Badge key={i} variant={r.role === "admin" ? "default" : "secondary"} className="text-xs">
+                              {r.role}
                             </Badge>
                           ))}
                         </div>

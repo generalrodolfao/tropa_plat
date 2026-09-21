@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
+import { CommonModule } from './common/common.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthModule } from './health/health.module';
 import { XpModule } from './xp/xp.module';
@@ -26,6 +27,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { B2BModule } from './b2b/b2b.module';
 import { CertificatesModule } from './certificates/certificates.module';
 import { CvModule } from './cv/cv.module';
+import { CampsModule } from './camps/camps.module';
 import { EmailModule } from './email/email.module';
 
 @Module({
@@ -36,6 +38,7 @@ import { EmailModule } from './email/email.module';
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 240 }]),
     PrismaModule,
+    CommonModule,
     AuthModule,
     HealthModule,
     XpModule,
@@ -59,9 +62,9 @@ import { EmailModule } from './email/email.module';
     B2BModule,
     CertificatesModule,
     CvModule,
+    CampsModule,
     EmailModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
-
