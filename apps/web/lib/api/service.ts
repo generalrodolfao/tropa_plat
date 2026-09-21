@@ -677,6 +677,14 @@ export const campsApi = {
   },
 }
 
+// Jogo — Vale dos Dados (SSO via token de uso único)
+export const gameApi = {
+  sso: async (): Promise<{ url: string }> => {
+    const res = await fetch(`${API_BASE}/game/sso`, { headers: getAuthHeaders() })
+    return handle(res)
+  },
+}
+
 // Admin — gestão de conteúdo, usuários e pagamentos
 export const adminApi = {
   // Cursos

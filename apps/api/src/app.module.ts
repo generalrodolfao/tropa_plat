@@ -29,6 +29,7 @@ import { CertificatesModule } from './certificates/certificates.module';
 import { CvModule } from './cv/cv.module';
 import { CampsModule } from './camps/camps.module';
 import { EmailModule } from './email/email.module';
+import { GameModule } from './game/game.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { EmailModule } from './email/email.module';
     CertificatesModule,
     CvModule,
     CampsModule,
+    GameModule,
     EmailModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
